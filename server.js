@@ -1,5 +1,6 @@
 import express from 'express'
 import env from 'dotenv'
+import connectDB from './config/dbConnection.js'
 
 import userRoutes from './routes/userRoutes.js'
 //create instance 
@@ -7,6 +8,9 @@ const app = express();
 
 //dotenv
 env.config()
+
+//Database connection
+connectDB()
 
 //Port
 const PORT = process.env.PORT || 3000;
