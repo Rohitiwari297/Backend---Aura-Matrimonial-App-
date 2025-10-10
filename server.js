@@ -1,0 +1,26 @@
+import express from 'express'
+import env from 'dotenv'
+
+import userRoutes from './routes/userRoutes.js'
+//create instance 
+const app = express();
+
+//dotenv
+env.config()
+
+//Port
+const PORT = process.env.PORT || 3000;
+
+//creating demo routes
+app.use('/ping', (req, res)=> {
+    console.log('server in up');
+    res.send('pong')
+})
+
+//create route
+app.use('/users', userRoutes )
+
+//starting the server
+app.listen(PORT, ()=> {
+    console.log(`sever is up on ${PORT}`)
+})
