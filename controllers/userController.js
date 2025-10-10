@@ -1,73 +1,77 @@
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+
+
 //DB
 import User from '../models/userSchema.js'
 
 // User registration 
 const userRegister = async (req, res) => {
-    res.send('User registered successfully');
+    // res.send('User registered successfully');
     try {
         const {
-         profileType,
-         fullName,
-         gender,
-         dateOfBirth,
-         email,
-         phone,
-         password,
-         religion,
-         caste,
-         education,
-         occupation,
-         location,
-         about,
-         partnerPreferences,
-       } = req.body;   
+            profileType,
+            fullName,
+            gender,
+            dateOfBirth,
+            email,
+            phone,
+            password,
+            religion,
+            caste,
+            education,
+            occupation,
+            location,
+            about,
+            partnerPreferences,
+        } = req.body;
 
-       
-    // Check required fields
-    if (!profileType|| !fullName || !gender || !dateOfBirth || !email || !phone || !password) {
-      return res.status(400).json({ message: "All required fields must be filled" });
-    }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+        // Check required fields
+        if (!profileType || !fullName || !gender || !dateOfBirth || !email || !phone || !password) {
+            return res.status(400).json({ message: "All required fields must be filled" });
+        }
 
-    //if new user then we have to encrypt the pass
-    // const hashedPassword = await bcrypt.hash(password, 10);
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: "User already exists" });
+        }
 
-    //hold all the user detials in a veriable
-    const newUser = new User ({
-        profileType,
-        fullName,
-        gender,
-        dateOfBirth,
-        email,
-        phone,
-        password,
-        religion,
-        caste,
-        education,
-        occupation,
-        location,
-        about,
-        partnerPreferences,
-    })
+        //if new user then we have to encrypt the pass
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    //use save method
-    await newUser.save()
+        //hold all the user detials in a veriable
+        const newUser = new User({
+            profileType,
+            fullName,
+            gender,
+            dateOfBirth,
+            email,
+            phone,
+            password: hashedPassword,
+            religion,
+            caste,
+            education,
+            occupation,
+            location,
+            about,
+            partnerPreferences,
+        })
 
-    //send response the to user
-    res.status(201).json({
-        message: "User registered successfully",
-        user: {
-        id: newUser._id,
-        fullName: newUser.fullName,
-        email: newUser.email,
-        phone: newUser.phone,
-      },
-    })
+        //use save method
+        await newUser.save()
+
+        //send response the to user
+        res.status(201).json({
+            message: "User registered successfully",
+            user: {
+                id: newUser._id,
+                fullName: newUser.fullName,
+                email: newUser.email,
+                phone: newUser.phone,
+            },
+        })
     } catch (error) {
         res.status(500).json({
             message: 'server error',
@@ -85,9 +89,9 @@ const getUsers = async (req, res) => {
         const users = await User.find().select("-password");
         res.status(200).json({
             message: 'Users fetched successfully',
-            users: finalUsers,   
+            users: users,
         })
-    } catch(error) {
+    } catch (error) {
         res.status(500).json({
             message: 'server error',
             error: error.message
@@ -95,5 +99,57 @@ const getUsers = async (req, res) => {
     }
 };
 
+// Login user
+const loginUser = async (req, res) => {
+    //received data from the user
+    const { email, password } = req.body;
+
+
+
+    //vailidations
+    if (!email, !password) {
+        res.status(400).json({
+            message: "Email and Password can't be empty",
+        })
+    }
+
+    //after validation match the details from the db
+    let user = await User.findOne({ email })
+    //validations
+    if (!user) {
+        res.status(500).json({
+            message: 'email not registered'
+        })
+    }
+
+    if (user) {
+        //console.log("user from db:",user.password)
+
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (isMatch) {
+            const token = jwt.sign(
+                { email, id: user._id },
+                process.env.SECRET_KEY,
+                { expiresIn: process.env.EXPIRED_ID }
+            );
+
+            res.status(200).json({
+                message: "User login successful",
+                token,
+                user,
+            });
+
+        } else {
+            res.status(401).json({ message: "Invalid password" });
+        }
+    } else {
+        res.status(404).json({ message: "User not found" });
+    }
+
+
+
+}
+
 // Export all controllers
-export { userRegister, getUsers };
+export { userRegister, getUsers, loginUser };
