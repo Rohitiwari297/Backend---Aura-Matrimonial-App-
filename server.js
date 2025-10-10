@@ -11,6 +11,8 @@ env.config()
 
 //Database connection
 connectDB()
+//parsh json
+app.use(express.json());
 
 //Port
 const PORT = process.env.PORT || 3000;

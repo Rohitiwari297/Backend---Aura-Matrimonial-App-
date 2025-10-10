@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
+  profileType: {
+    type: String,
+    enum: ["self", "relative", "son", "daughter", "brother", "sister", "client", "other"],
+    required: true,
+    default: "self",
+  },
   fullName: {
     type: String,
     required: true,
@@ -20,7 +26,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
   },
   phone: {
     type: String,
@@ -32,30 +37,17 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
-  religion: {
-    type: String,
-  },
-  caste: {
-    type: String,
-  },
-  occupation: {
-    type: String,
-  },
-  education: {
-    type: String,
-  },
+  religion: String,
+  caste: String,
+  education: String,
+  occupation: String,
   location: {
     city: String,
     state: String,
     country: String,
   },
-  about: {
-    type: String,
-    maxlength: 500,
-  },
-  profilePhoto: {
-    type: String, // Cloudinary URL or image path
-  },
+  about: String,
+  profilePhoto: String,
   partnerPreferences: {
     ageRange: {
       min: Number,
