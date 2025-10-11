@@ -99,7 +99,7 @@ const getUsers = async (req, res) => {
     }
 };
 
-// Login user
+// Login user with email & password
 const loginUser = async (req, res) => {
     //received data from the user
     const { email, password } = req.body;
@@ -151,5 +151,54 @@ const loginUser = async (req, res) => {
 
 }
 
+//Login user with mobile number otp
+const loginWithOtp = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    // Validate phone number
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Mobile number is required',
+      });
+    }
+
+    // Validate the number in DB
+    const user = await User.findOne({ phone }); // <-- await is important
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'This number is not registered',
+      });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000);
+
+    // Save OTP to DB 
+    user.otp = otp;
+    await user.save();
+
+    // (For now) simulate sending OTP via SMS API
+    console.log(`Sending OTP ${otp} to ${phone}`);
+
+    // Send response
+    return res.status(200).json({
+      message: 'OTP sent successfully',
+      otp, // remove this in production for security
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+
+    
+
 // Export all controllers
-export { userRegister, getUsers, loginUser };
+export { userRegister, getUsers, loginUser, loginWithOtp };
