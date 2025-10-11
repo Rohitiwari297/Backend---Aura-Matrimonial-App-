@@ -151,54 +151,113 @@ const loginUser = async (req, res) => {
 
 }
 
-//Login user with mobile number otp
+// Login user with mobile number otp
 const loginWithOtp = async (req, res) => {
-  try {
-    const { phone } = req.body;
+    try {
+        const { phone } = req.body;
 
-    // Validate phone number
-    if (!phone) {
+        // Validate phone number
+        if (!phone) {
+            return res.status(400).json({
+                message: 'Mobile number is required',
+            });
+        }
+
+        // Validate the number in DB
+        const user = await User.findOne({ phone }); // <-- await is important
+
+        if (!user) {
+            return res.status(404).json({
+                message: 'This number is not registered',
+            });
+        }
+
+        // Generate 4-digit OTP
+        const otp = Math.floor(1000 + Math.random() * 9000);
+
+        // Save OTP to DB 
+        user.otp = otp;
+        await user.save();
+
+        // (For now) simulate sending OTP via SMS API
+        console.log(`Sending OTP ${otp} to ${phone}`);
+
+        // Send response
+        return res.status(200).json({
+            message: 'OTP sent successfully',
+            otp, // remove this in production for security
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: error.message,
+        });
+    }
+};
+
+// profile setup
+const profileSetup = async (req, res) => {
+
+    try {
+    console.log("Incoming request body:", req.body);
+    console.log("Incoming user:", req.user);
+
+    // Extract fields from body
+    const { about, image } = req.body;
+
+    // Get logged-in user id from JWT middleware
+    const userId = req.user?._id;
+
+    // Check if userId exists
+    if (!userId) {
+      return res.status(401).json({
+        message: "Unauthorized: User not found in token",
+      });
+    }
+
+    // Validate input
+    if (!about || !image) {
       return res.status(400).json({
-        message: 'Mobile number is required',
+        message: "All fields are required",
       });
     }
 
-    // Validate the number in DB
-    const user = await User.findOne({ phone }); // <-- await is important
+    // Update user profile
+    const updatedProfile = await User.findByIdAndUpdate(
+      userId,
+      {
+        about,
+        $push: { profilePhotos: { url: image } }, // store image URL (Cloudinary or other)
+      },
+      { new: true }
+    );
 
-    if (!user) {
+    // If user not found
+    if (!updatedProfile) {
       return res.status(404).json({
-        message: 'This number is not registered',
+        message: "User not found",
       });
     }
 
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000);
-
-    // Save OTP to DB 
-    user.otp = otp;
-    await user.save();
-
-    // (For now) simulate sending OTP via SMS API
-    console.log(`Sending OTP ${otp} to ${phone}`);
-
-    // Send response
-    return res.status(200).json({
-      message: 'OTP sent successfully',
-      otp, // remove this in production for security
+    // Success response
+    res.status(200).json({
+      message: "Profile setup completed successfully",
+      user: updatedProfile,
     });
-
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      message: 'Internal server error',
+    res.status(500).json({
+      message: "Error setting up profile",
       error: error.message,
     });
   }
-};
 
 
-    
+}
+
+
+
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup };

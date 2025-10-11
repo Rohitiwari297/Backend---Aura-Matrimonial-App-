@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
+ profilePhotos: [
+  {
+    url: { type: String },
+    publicId: { type: String },
+  },
+],
   phone: {
     type: String,
     required: true,

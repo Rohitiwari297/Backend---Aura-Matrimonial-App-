@@ -13,6 +13,8 @@ env.config()
 connectDB()
 //parsh json
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 //Port
 const PORT = process.env.PORT || 3000;
