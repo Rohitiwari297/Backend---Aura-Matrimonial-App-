@@ -77,8 +77,13 @@ const userSchema = new mongoose.Schema({
     income: { type: String },
     language: { type: String },
     manglik: { type: String }
-  }
-  ,
+  },
+  followers: {
+    type: String
+  },
+   followings: {
+    type: String
+  },
   createdAt: {
     type: Date,
     default: Date.now,

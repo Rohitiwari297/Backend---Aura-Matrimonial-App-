@@ -257,7 +257,7 @@ const userProfile = async (req, res) => {
             console.log("Missing fields in request body");
             return res.status(400).json({ message: "All fields are required" });
         }
-        
+
         //taking user ID from the request
         const userId = req.user?._id;
         console.log('userID from the request', userId)
@@ -283,7 +283,7 @@ const userProfile = async (req, res) => {
         console.log("Profile updated successfully for user:", updatedProfile._id);
 
         return res.status(200).json({
-            success:true,
+            success: true,
             message: "Profile setup completed successfully",
             user: updatedProfile,
         });
@@ -295,7 +295,89 @@ const userProfile = async (req, res) => {
 }
 
 const partnerPreferences = async (req, res) => {
-    const {} = req.body;
+    const { age, height, state, qualification, income, cast, language, manglik, city, occupation, religion } = req.body;
+
+    //validations if any fields requred
+    if(!age, !height, !state, !qualification, !income, !cast, !language, !manglik, !city, !occupation, !religion){
+        res.status(500).json({
+            success: false,
+            message: 'all fields are required'
+        })
+    }
+    //try-catch
+    try {
+        //update on behalf of the userID
+        const userId = req.user?.id;
+        console.log('userid from the user', userId)
+
+        if (!userId) {
+
+            res.status(401).json({
+                success: false,
+                message: 'Unauthorized: User not found in token'
+            })
+
+        }
+
+        //Update user partner preferences
+        const updatePreference = await User.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    partnerPreferences: {
+                        ageRange: {
+                            min: age.min || age, // supports single value or object {min, max}
+                            max: age.max || age,
+                        },
+                        height,
+                        religion,
+                        caste: cast,
+                        location: {
+                            state,
+                            city,
+                        },
+                        education: qualification,
+                        occupation,
+                        income,
+                        language,
+                        manglik,
+                    },
+
+                }
+            },
+            { new: true } // for returns updated document
+        )
+
+        //validations
+        if (!updatePreference) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+
+           
+
+        }
+
+         //send respons
+
+        res.status(200).json({
+            success: true,
+            message: "Partner preferences updated successfully",
+            data: updatePreference.partnerPreferences,
+        });
+
+
+
+    } catch (error) {
+        console.error("Error updating partner preferences:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+
+        });
+    }
+
 }
 
 
@@ -303,4 +385,4 @@ const partnerPreferences = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences };
