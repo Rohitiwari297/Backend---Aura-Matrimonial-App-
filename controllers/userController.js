@@ -199,65 +199,108 @@ const loginWithOtp = async (req, res) => {
 
 // profile setup
 const profileSetup = async (req, res) => {
+    console.log("profileSetup called");
+    console.log("Request body:", req.body);
+    console.log("User from req.user:", req.user);
 
     try {
-    console.log("Incoming request body:", req.body);
-    console.log("Incoming user:", req.user);
+        const { about, image } = req.body;
 
-    // Extract fields from body
-    const { about, image } = req.body;
+        if (!about || !image) {
+            console.log("Missing fields in request body");
+            return res.status(400).json({ message: "All fields are required" });
+        }
 
-    // Get logged-in user id from JWT middleware
-    const userId = req.user?._id;
+        const userId = req.user?._id;
+        if (!userId) {
+            console.log("User not found in token");
+            return res.status(401).json({ message: "Unauthorized: User not found in token" });
+        }
 
-    // Check if userId exists
-    if (!userId) {
-      return res.status(401).json({
-        message: "Unauthorized: User not found in token",
-      });
+        const updatedProfile = await User.findByIdAndUpdate(
+            userId,
+            {
+                about,
+                $push: { profilePhotos: { url: image } },
+            },
+            { new: true }
+        );
+
+        if (!updatedProfile) {
+            console.log("User not found in DB while updating");
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        console.log("Profile updated successfully for user:", updatedProfile._id);
+
+        return res.status(200).json({
+            message: "Profile setup completed successfully",
+            user: updatedProfile,
+        });
+
+    } catch (error) {
+        console.error("Error in profileSetup:", error.message);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
+};
 
-    // Validate input
-    if (!about || !image) {
-      return res.status(400).json({
-        message: "All fields are required",
-      });
+//userProfile
+const userProfile = async (req, res) => {
+    console.log("profileSetup called");
+    console.log("Request body:", req.body);
+    console.log("User from req.user:", req.user);
+
+    try {
+        const { about, image } = req.body;
+
+        if (!about || !image) {
+            console.log("Missing fields in request body");
+            return res.status(400).json({ message: "All fields are required" });
+        }
+        
+        //taking user ID from the request
+        const userId = req.user?._id;
+        console.log('userID from the request', userId)
+        if (!userId) {
+            console.log("User not found in token");
+            return res.status(401).json({ message: "Unauthorized: User not found in token" });
+        }
+
+        const updatedProfile = await User.findByIdAndUpdate(
+            userId,
+            {
+                about,
+                $push: { profilePhotos: { url: image } },
+            },
+            { new: true }
+        );
+
+        if (!updatedProfile) {
+            console.log("User not found in DB while updating");
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        console.log("Profile updated successfully for user:", updatedProfile._id);
+
+        return res.status(200).json({
+            success:true,
+            message: "Profile setup completed successfully",
+            user: updatedProfile,
+        });
+
+    } catch (error) {
+        console.error("Error in profileSetup:", error.message);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
+}
 
-    // Update user profile
-    const updatedProfile = await User.findByIdAndUpdate(
-      userId,
-      {
-        about,
-        $push: { profilePhotos: { url: image } }, // store image URL (Cloudinary or other)
-      },
-      { new: true }
-    );
-
-    // If user not found
-    if (!updatedProfile) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
-    // Success response
-    res.status(200).json({
-      message: "Profile setup completed successfully",
-      user: updatedProfile,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error setting up profile",
-      error: error.message,
-    });
-  }
-
-
+const partnerPreferences = async (req, res) => {
+    const {} = req.body;
 }
 
 
 
 
+
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile };

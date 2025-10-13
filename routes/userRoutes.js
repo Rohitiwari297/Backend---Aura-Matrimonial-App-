@@ -1,5 +1,5 @@
 import express from 'express';
-import { userRegister, getUsers, loginUser, loginWithOtp, profileSetup } from '../controllers/userController.js';
+import { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile } from '../controllers/userController.js';
 import authMiddleware from '../middlewares/Auth.js';
 
 // Create router instance
@@ -10,7 +10,8 @@ route.post('/register', userRegister);
 route.get('/getUser', getUsers);
 route.post('/login', loginUser)
 route.post('/otplogin', loginWithOtp)
-route.post('/profile', authMiddleware, profileSetup)
+route.post('/profile', profileSetup);
+route.post('/user-profile',authMiddleware, userProfile)
 
 // Export routes
 export default route;

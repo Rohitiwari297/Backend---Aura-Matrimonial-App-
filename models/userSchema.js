@@ -27,19 +27,21 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
   },
- profilePhotos: [
-  {
-    url: { type: String },
-    publicId: { type: String },
-  },
-],
+
+  //After login
+  profilePhotos: [
+    {
+      url: { type: String },
+      publicId: { type: String },
+    },
+  ],
   phone: {
     type: String,
     required: true,
     unique: true,
   },
-  otp: { 
-    type: String 
+  otp: {
+    type: String
   },
   password: {
     type: String,
@@ -56,17 +58,27 @@ const userSchema = new mongoose.Schema({
     country: String,
   },
   about: String,
-  profilePhoto: String,
+
+  //after login
   partnerPreferences: {
     ageRange: {
-      min: Number,
-      max: Number,
+      min: { type: Number },
+      max: { type: Number },
     },
-    religion: String,
-    caste: String,
-    location: String,
-    education: String,
-  },
+    height: { type: String },
+    religion: { type: String },
+    caste: { type: String },
+    location: {
+      state: { type: String },
+      city: { type: String }
+    },
+    education: { type: String },
+    occupation: { type: String },
+    income: { type: String },
+    language: { type: String },
+    manglik: { type: String }
+  }
+  ,
   createdAt: {
     type: Date,
     default: Date.now,
