@@ -12,6 +12,7 @@ const userRegister = async (req, res) => {
         const {
             profileType,
             fullName,
+            username,
             gender,
             dateOfBirth,
             email,
@@ -28,7 +29,7 @@ const userRegister = async (req, res) => {
 
 
         // Check required fields
-        if (!profileType || !fullName || !gender || !dateOfBirth || !email || !phone || !password) {
+        if (!username,!profileType || !fullName || !gender || !dateOfBirth || !email || !phone || !password) {
             return res.status(400).json({ message: "All required fields must be filled" });
         }
 
@@ -45,6 +46,7 @@ const userRegister = async (req, res) => {
         const newUser = new User({
             profileType,
             fullName,
+            username,
             gender,
             dateOfBirth,
             email,
@@ -380,9 +382,84 @@ const partnerPreferences = async (req, res) => {
 
 }
 
+//follow
+const followUser = async (req, res) => {
+    try {
+        const usernameOne = req.user?.username; // follower - my
+        const usernameTwo = req.params.username; // following - my friend
+
+        console.log('username_one', usernameOne)
+        console.log('username_two', usernameTwo)
+
+
+        if (!usernameOne || !usernameTwo) return res.status(400).json({ success: false, message: 'Invalid request' });
+
+        const userOneData = await User.findOne({ username: usernameOne });
+        if (!userOneData) return res.status(404).json({ success: false, message: 'User does not exist' });
+        
+        await User.findOneAndUpdate({ username: usernameTwo }, { $addToSet: { followers: usernameOne } });
+        await User.findOneAndUpdate({ username: usernameOne }, { $addToSet: { followings: usernameTwo } });
+
+        return res.status(200).json({ success: true, message: 'Followed successfully' });
+
+        
+
+
+    } catch (error) {
+        return res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+
+//Unfollow
+const unfollowUser = async (req, res) => {
+    try {
+         const usernameOne = req.user?.username; // follower - my
+        const usernameTwo = req.params.username; // following - my friend
+
+        console.log('username_one', usernameOne)
+        console.log('username_two', usernameTwo)
+
+        //finding in db
+        const usertwoData = await User.findOne({username: usernameTwo}) 
+
+        if(!usertwoData){
+            return res.status(404).json({
+                success: false,
+                message: 'User not exist'
+            })
+        }
+
+        if(usertwoData.followers.includes(usernameOne)){
+            await User.findOneAndUpdate({username: usernameTwo}, {$push: {followers: usernameOne}})
+            await User.findOneAndUpdate({username: usernameOne}, {$push: {followings: usernameTwo}})
+
+        }else{
+            return res.status(400).json({
+                success: false,
+                message: 'You have not followed this user yet'
+            })
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Unfollowed successfully'
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        })
+    }
+}
+
+
+
+
 
 
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, followUser, unfollowUser };

@@ -79,10 +79,17 @@ const userSchema = new mongoose.Schema({
     manglik: { type: String }
   },
   followers: {
-    type: String
+    type: String,
+    default: []
   },
    followings: {
-    type: String
+    type: String,
+    default: []
+  },
+  username: {
+    type: String,
+    required: true,
+    unique: true
   },
   createdAt: {
     type: Date,
