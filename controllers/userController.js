@@ -296,6 +296,49 @@ const userProfile = async (req, res) => {
     }
 }
 
+// get userProfile
+const getUserProfile = async (req, res) => {
+
+    try {
+        
+        //received query parameter 
+        const userId = req.user?._id;
+    
+        console.log('fatching present user',userId);
+    
+        if(!userId){
+            res.status(401).json({
+                success: false,
+                message: 'user not found, please login'
+            })
+        }
+    
+        const user = await User.findById(userId).select("-password");
+    
+        // If no user found
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "User does not exist",
+          });
+        }
+    
+        return res.status(200).json({
+          success: true,
+          message: "Profile fetched successfully",
+          user,
+        });
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+        });
+    }
+
+}
+
 const partnerPreferences = async (req, res) => {
     const { age, height, state, qualification, income, cast, language, manglik, city, occupation, religion } = req.body;
 
@@ -382,77 +425,136 @@ const partnerPreferences = async (req, res) => {
 
 }
 
-//follow
-const followUser = async (req, res) => {
-    try {
-        const usernameOne = req.user?.username; // follower - my
-        const usernameTwo = req.params.username; // following - my friend
+//send Follow Request
+const sendFollowRequest = async (req, res) => {
+  try {
+    const usernameOne = req.user?.username; // requester (me)
+    const usernameTwo = req.params.username; // target user
 
-        console.log('username_one', usernameOne)
-        console.log('username_two', usernameTwo)
+    console.log('Requester:', usernameOne);
+    console.log('Target:', usernameTwo);
 
-
-        if (!usernameOne || !usernameTwo) return res.status(400).json({ success: false, message: 'Invalid request' });
-
-        const userOneData = await User.findOne({ username: usernameOne });
-        if (!userOneData) return res.status(404).json({ success: false, message: 'User does not exist' });
-        
-        await User.findOneAndUpdate({ username: usernameTwo }, { $addToSet: { followers: usernameOne } });
-        await User.findOneAndUpdate({ username: usernameOne }, { $addToSet: { followings: usernameTwo } });
-
-        return res.status(200).json({ success: true, message: 'Followed successfully' });
-
-        
-
-
-    } catch (error) {
-        return res.status(500).json({ success: false, error: error.message });
+    if (!usernameOne || !usernameTwo) {
+      return res.status(400).json({ success: false, message: 'Invalid request' });
     }
+
+    if (usernameOne === usernameTwo) {
+      return res.status(400).json({ success: false, message: "You can't follow yourself" });
+    }
+
+    const targetUser = await User.findOne({ username: usernameTwo });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if already following or requested
+    if (targetUser.followers.includes(usernameOne)) {
+      return res.status(400).json({ success: false, message: 'Already following this user' });
+    }
+
+    if (targetUser.followRequests.includes(usernameOne)) {
+      return res.status(400).json({ success: false, message: 'Follow request already sent' });
+    }
+
+    // Add follow request to receiver and sent request to sender
+    await User.findOneAndUpdate(
+      { username: usernameTwo },
+      { $addToSet: { followRequests: usernameOne } },
+      { new: true }
+    );
+
+    await User.findOneAndUpdate(
+      { username: usernameOne },
+      { $addToSet: { sentRequests: usernameTwo } },
+      { new: true }
+    );
+
+    return res.status(200).json({ success: true, message: 'Follow request sent successfully' });
+  } catch (error) {
+    console.error('Error in sendFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
 };
 
 
-//Unfollow
-const unfollowUser = async (req, res) => {
-    try {
-         const usernameOne = req.user?.username; // follower - my
-        const usernameTwo = req.params.username; // following - my friend
+//accept Follow Request
+const acceptFollowRequest = async (req, res) => {
+  try {
+    const usernameOne = req.user?.username; // me (the receiver)
+    const usernameTwo = req.params.username; // sender of the request
 
-        console.log('username_one', usernameOne)
-        console.log('username_two', usernameTwo)
+    console.log('Receiver:', usernameOne);
+    console.log('Sender:', usernameTwo);
 
-        //finding in db
-        const usertwoData = await User.findOne({username: usernameTwo}) 
+    const user = await User.findOne({ username: usernameOne });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        if(!usertwoData){
-            return res.status(404).json({
-                success: false,
-                message: 'User not exist'
-            })
-        }
-
-        if(usertwoData.followers.includes(usernameOne)){
-            await User.findOneAndUpdate({username: usernameTwo}, {$push: {followers: usernameOne}})
-            await User.findOneAndUpdate({username: usernameOne}, {$push: {followings: usernameTwo}})
-
-        }else{
-            return res.status(400).json({
-                success: false,
-                message: 'You have not followed this user yet'
-            })
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Unfollowed successfully'
-        })
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message,
-        })
+    // Check if request exists
+    if (!user.followRequests.includes(usernameTwo)) {
+      return res.status(400).json({ success: false, message: 'No follow request from this user' });
     }
-}
+
+    // Update both users
+    await User.findOneAndUpdate(
+      { username: usernameOne },
+      {
+        $pull: { followRequests: usernameTwo },
+        $addToSet: { followers: usernameTwo },
+      }
+    );
+
+    await User.findOneAndUpdate(
+      { username: usernameTwo },
+      {
+        $pull: { sentRequests: usernameOne },
+        $addToSet: { followings: usernameOne },
+      }
+    );
+
+    return res.status(200).json({ success: true, message: 'Follow request accepted' });
+  } catch (error) {
+    console.error('Error in acceptFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
+//reject Follow Request
+const rejectFollowRequest = async (req, res) => {
+  try {
+    const usernameOne = req.user?.username; // me (the receiver)
+    const usernameTwo = req.params.username; // sender of the request
+
+    console.log('Receiver:', usernameOne);
+    console.log('Sender:', usernameTwo);
+
+    const user = await User.findOne({ username: usernameOne });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Check if request exists
+    if (!user.followRequests.includes(usernameTwo)) {
+      return res.status(400).json({ success: false, message: 'No follow request from this user' });
+    }
+
+    // Remove request from both users
+    await User.findOneAndUpdate(
+      { username: usernameOne },
+      { $pull: { followRequests: usernameTwo } }
+    );
+
+    await User.findOneAndUpdate(
+      { username: usernameTwo },
+      { $pull: { sentRequests: usernameOne } }
+    );
+
+    return res.status(200).json({ success: true, message: 'Follow request rejected' });
+  } catch (error) {
+    console.error('Error in rejectFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+
 
 
 
@@ -462,4 +564,4 @@ const unfollowUser = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, followUser, unfollowUser };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile };
