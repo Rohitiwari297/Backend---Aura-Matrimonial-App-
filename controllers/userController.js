@@ -1,9 +1,13 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
-
 //DB
 import User from '../models/userSchema.js'
+import Message from "../models/messageSchema.js";
+
+
+
+//Controllers
 
 // User registration 
 const userRegister = async (req, res) => {
@@ -339,6 +343,7 @@ const getUserProfile = async (req, res) => {
 
 }
 
+//Partner preference 
 const partnerPreferences = async (req, res) => {
     const { age, height, state, qualification, income, cast, language, manglik, city, occupation, religion } = req.body;
 
@@ -554,6 +559,176 @@ const rejectFollowRequest = async (req, res) => {
   }
 };
 
+//Recommendations on behalf of preference
+const getMatches = async (req, res) => {
+
+    try {
+        
+        const userId = req.user?._id;
+    
+        // validation
+        if(!userId){
+            res.status(401).json({
+                success: false,
+                message: 'Unauthorized: Please login first'
+            })    
+        }
+    
+        //after that fetch login user's data
+        const user = User.findById(userId).select("-password");
+        //validations
+        if(!user){
+            res.status(404).json({
+                success: false,
+                message: 'User not fount'
+            })
+        }
+    
+        // fetch partner preference of user
+        const pref = user.partnerPreferences || {} ;
+        //create query variable
+        const query = {};
+    
+        //apply query condition
+        //1. gender preference for male -> female & for Female -> male
+        if(user.gender === "Male"){
+            query.gender = "Female";
+        }else if(user.gender === "Female"){
+            query.gender = "Male";
+        }
+    
+        //2. Age range filter (convert to dateOfBirth)
+        if(pref.ageRange?.min && pref.ageRange?.max){
+            const currentYear = new Date().getFullYear();
+            query.dateOfBirth = {
+                $gte: new Date(currentYear - pref.ageRange.max, 0, 1),
+                $lte: new Date(currentYear - pref.ageRange.min, 11, 31)
+    
+            }
+        }
+    
+        //3. Religion
+        if (pref.religion) query.religion = pref.religion;
+    
+        //4. Caste
+        if (pref.caste) query.caste = pref.caste;
+    
+        //5. Location
+        if (pref.location?.state) query["location.state"] = pref.location.state;
+        if (pref.location?.city) query["location.city"] = pref.location.city;
+    
+        //6. Education & Occupation
+        if (pref.education) query.education = pref.education;
+        if (pref.occupation) query.occupation = pref.occupation;
+    
+        //7. Manglik & Language
+        if (pref.manglik) query.manglik = pref.manglik;
+        if (pref.language) query.language = pref.language;
+    
+        //Exclude self
+        query._id = { $ne: userId };
+    
+        //Find matches
+        const matches = await User.find(query).select(
+          "fullName username gender dateOfBirth religion caste education occupation location profilePhotos about"
+        );
+    
+        if (matches.length === 0) {
+          return res.status(200).json({
+            success: true,
+            message: "No matches found based on your preferences",
+            matches: [],
+          });
+        }
+    
+        //send response
+        res.status(200).json({
+          success: true,
+          message: "Matched profiles fetched successfully",
+          totalMatches: matches.length,
+          matches,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        })
+    }
+
+
+}
+
+
+//Send a message (via REST, optional in addition to socket)
+const sendMessage = async (req, res) => {
+  try {
+    console.log('req.body.request', req)
+    const senderId = req.user._id; // from auth middleware
+    const receiverId = req.params.receiverId; // from URL
+    const { message } = req.body;
+
+    console.log('req.body.id', receiverId)
+    console.log('req.body.message', message)
+
+
+    if (!receiverId || !message) {
+      return res.status(400).json({ success: false, message: "Receiver and message are required" });
+    }
+
+    const newMessage = await Message.create({ senderId, receiverId, message });
+
+    return res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      data: newMessage,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+//Get all messages between two users
+const getMessages = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { receiverId } = req.params;
+
+    const messages = await Message.find({
+      $or: [
+        { senderId: userId, receiverId },
+        { senderId: receiverId, receiverId: userId },
+      ],
+    }).sort({ createdAt: 1 });
+
+    return res.status(200).json({
+      success: true,
+      messages,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Optional: Delete all messages between two users
+// const deleteConversation = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const { receiverId } = req.params;
+
+//     await Message.deleteMany({
+//       $or: [
+//         { senderId: userId, receiverId },
+//         { senderId: receiverId, receiverId: userId },
+//       ],
+//     });
+
+//     return res.status(200).json({ success: true, message: "Conversation deleted" });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, error: error.message });
+//   }
+// };
+
+
 
 
 
@@ -564,4 +739,4 @@ const rejectFollowRequest = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches, sendMessage, getMessages };
