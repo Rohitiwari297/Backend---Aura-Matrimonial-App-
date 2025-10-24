@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  // 🔹 Basic Profile Info
+  // Basic Profile Info
   profileType: {
     type: String,
     enum: ["self", "relative", "son", "daughter", "brother", "sister", "client", "other"],
@@ -15,20 +15,22 @@ const userSchema = new mongoose.Schema({
   },
   username: {
     type: String,
-    required: true,
     unique: true,
+    required: true,
+    trim: true,
   },
   gender: {
     type: String,
     enum: ["Male", "Female", "Other"],
     required: true,
   },
+  height: { type: String },
   dateOfBirth: {
     type: Date,
     required: true,
   },
 
-  // 🔹 Contact & Authentication
+  // Contact & Authentication
   email: {
     type: String,
     required: true,
@@ -45,11 +47,9 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
-  otp: {
-    type: String,
-  },
+  otp: { type: String },
 
-  // 🔹 Profile Details
+  // Profile Details
   profilePhotos: [
     {
       url: { type: String },
@@ -58,24 +58,33 @@ const userSchema = new mongoose.Schema({
   ],
   religion: { type: String },
   caste: { type: String },
+  subcaste: { type: String },
   education: { type: String },
+  otherQualification: { type: String },
   occupation: { type: String },
-  about: { type: String },
+  annualIncome: { type: String },
+  workLocation: { type: String },
+  employedIn: { type: String },
+  maritalStatus: { type: String },
+  horoscope: { type: String },
 
-  // 🔹 Location
+  // Location
   location: {
     city: { type: String },
     state: { type: String },
     country: { type: String },
   },
 
-  // 🔹 Partner Preferences
+  // Partner Preferences (optional for registration)
   partnerPreferences: {
     ageRange: {
       min: { type: Number },
       max: { type: Number },
     },
-    height: { type: String },
+    heightRange: {
+      min: { type: String },
+      max: { type: String },
+    },
     religion: { type: String },
     caste: { type: String },
     location: {
@@ -83,13 +92,14 @@ const userSchema = new mongoose.Schema({
       city: { type: String },
     },
     education: { type: String },
+    otherQualification: { type: String },
     occupation: { type: String },
     income: { type: String },
     language: { type: String },
     manglik: { type: String },
   },
 
-  // 🔹 Social / Connection System
+  // Social / Connection System
   followers: {
     type: [String],
     default: [],
@@ -107,13 +117,12 @@ const userSchema = new mongoose.Schema({
     default: [],
   },
 
-  // 🔹 Meta Info
+  // Meta Info
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// 🔹 Model Export
 const User = mongoose.model("User", userSchema);
 export default User;

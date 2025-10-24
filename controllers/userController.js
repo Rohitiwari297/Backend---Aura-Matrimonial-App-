@@ -1,13 +1,9 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
+
 //DB
 import User from '../models/userSchema.js'
-import Message from "../models/messageSchema.js";
-
-
-
-//Controllers
 
 // User registration 
 const userRegister = async (req, res) => {
@@ -18,17 +14,23 @@ const userRegister = async (req, res) => {
             fullName,
             username,
             gender,
+            height,
             dateOfBirth,
             email,
             phone,
             password,
             religion,
             caste,
+            subcaste,
             education,
+            otherQualification,
+            annualIncome,
             occupation,
             location,
-            about,
-            partnerPreferences,
+            workLocation,
+            employedIn,
+            maritalStatus,
+            horoscope,
         } = req.body;
 
 
@@ -52,17 +54,23 @@ const userRegister = async (req, res) => {
             fullName,
             username,
             gender,
+            height,
             dateOfBirth,
             email,
             phone,
             password: hashedPassword,
             religion,
             caste,
+            subcaste,
             education,
+            otherQualification,
+            annualIncome,
             occupation,
             location,
-            about,
-            partnerPreferences,
+            workLocation,
+            employedIn,
+            maritalStatus,
+            horoscope,
         })
 
         //use save method
@@ -343,7 +351,6 @@ const getUserProfile = async (req, res) => {
 
 }
 
-//Partner preference 
 const partnerPreferences = async (req, res) => {
     const { age, height, state, qualification, income, cast, language, manglik, city, occupation, religion } = req.body;
 
@@ -659,77 +666,6 @@ const getMatches = async (req, res) => {
 }
 
 
-//Send a message (via REST, optional in addition to socket)
-const sendMessage = async (req, res) => {
-  try {
-    console.log('req.body.request', req)
-    const senderId = req.user._id; // from auth middleware
-    const receiverId = req.params.receiverId; // from URL
-    const { message } = req.body;
-
-    console.log('req.body.id', receiverId)
-    console.log('req.body.message', message)
-
-
-    if (!receiverId || !message) {
-      return res.status(400).json({ success: false, message: "Receiver and message are required" });
-    }
-
-    const newMessage = await Message.create({ senderId, receiverId, message });
-
-    return res.status(201).json({
-      success: true,
-      message: "Message sent successfully",
-      data: newMessage,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-//Get all messages between two users
-const getMessages = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { receiverId } = req.params;
-
-    const messages = await Message.find({
-      $or: [
-        { senderId: userId, receiverId },
-        { senderId: receiverId, receiverId: userId },
-      ],
-    }).sort({ createdAt: 1 });
-
-    return res.status(200).json({
-      success: true,
-      messages,
-    });
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-// Optional: Delete all messages between two users
-// const deleteConversation = async (req, res) => {
-//   try {
-//     const userId = req.user._id;
-//     const { receiverId } = req.params;
-
-//     await Message.deleteMany({
-//       $or: [
-//         { senderId: userId, receiverId },
-//         { senderId: receiverId, receiverId: userId },
-//       ],
-//     });
-
-//     return res.status(200).json({ success: true, message: "Conversation deleted" });
-//   } catch (error) {
-//     return res.status(500).json({ success: false, error: error.message });
-//   }
-// };
-
-
-
 
 
 
@@ -739,4 +675,4 @@ const getMessages = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches, sendMessage, getMessages };
+export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };

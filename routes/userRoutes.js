@@ -12,8 +12,6 @@ import {
   rejectFollowRequest,
   getUserProfile,
   getMatches,
-  sendMessage,
-  getMessages
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
@@ -39,11 +37,5 @@ route.get('/preference-matches', authMiddleware, getMatches);
 route.post('/follow/:username', authMiddleware, sendFollowRequest);
 route.post('/follow/accept/:username', authMiddleware, acceptFollowRequest);
 route.post('/follow/reject/:username', authMiddleware, rejectFollowRequest);
-
-// Messaging (Chat)
-route.post('/send/:receiverId', authMiddleware, sendMessage); 
-route.get('/messages/:receiverId', authMiddleware, getMessages); 
-
-// route.delete("/:receiverId", authMiddleware, deleteConversation);
 
 export default route;
