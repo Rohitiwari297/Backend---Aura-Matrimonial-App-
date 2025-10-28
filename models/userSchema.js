@@ -1,27 +1,27 @@
 import mongoose from "mongoose";
+import { genderType, profileType } from "../utils/constants.js";
 
 const userSchema = new mongoose.Schema({
   // Basic Profile Info
   profileType: {
     type: String,
-    enum: ["self", "relative", "son", "daughter", "brother", "sister", "client", "other"],
+    enum: [profileType.self, profileType.relative, profileType.son, profileType.daughter, profileType.brother, profileType.sister, profileType.client, profileType.other],
     required: true,
-    default: "self",
+    default: profileType.self,
   },
   fullName: {
     type: String,
     required: true,
     trim: true,
   },
-  username: {
-    type: String,
-    unique: true,
-    required: true,
-    trim: true,
-  },
+//   username: {
+//   type: String,
+//   unique: false, // or just remove this line entirely
+//   sparse: true,  // optional: allows null/undefined values without index errors
+// },
   gender: {
     type: String,
-    enum: ["Male", "Female", "Other"],
+    enum: [genderType.male, genderType.female, genderType.other],
     required: true,
   },
   height: { type: String },

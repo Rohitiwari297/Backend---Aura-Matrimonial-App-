@@ -15,6 +15,7 @@ import {
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
+import { validateUserRegistration } from '../middlewares/auth_register.js';
 
 const route = express.Router();
 
