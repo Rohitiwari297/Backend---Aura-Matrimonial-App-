@@ -2,6 +2,8 @@ import express from 'express'
 import env from 'dotenv'
 import connectDB from './config/dbConnection.js'
 
+import path from 'path'
+
 import userRoutes from './routes/userRoutes.js'
 //create instance 
 const app = express();
@@ -27,6 +29,9 @@ app.use('/ping', (req, res)=> {
 
 //create route
 app.use('/users', userRoutes )
+
+// Serve uploaded files statically
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 //starting the server
 app.listen(PORT, ()=> {

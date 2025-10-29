@@ -175,97 +175,162 @@ const loginUser = async (req, res) => {
 }
 
 // Login user with mobile number otp
-const loginWithOtp = async (req, res) => {
-    try {
-        const { phone } = req.body;
+const generateOtp = async (req, res) => {
+  try {
+    console.log('Printing req header:', req.headers);
+    console.log('GenerateOtp called');
+    console.log('Request body:', req.body);
+    const { phone } = req.body;
 
-        // Validate phone number
-        if (!phone) {
-            return res.status(400).json({
-                message: 'Mobile number is required',
-            });
-        }
-
-        // Validate the number in DB
-        const user = await User.findOne({ phone }); // <-- await is important
-
-        if (!user) {
-            return res.status(404).json({
-                message: 'This number is not registered',
-            });
-        }
-
-        // Generate 4-digit OTP
-        const otp = Math.floor(1000 + Math.random() * 9000);
-
-        // Save OTP to DB 
-        user.otp = otp;
-        await user.save();
-
-        // (For now) simulate sending OTP via SMS API
-        console.log(`Sending OTP ${otp} to ${phone}`);
-
-        // Send response
-        return res.status(200).json({
-            message: 'OTP sent successfully',
-            otp, // remove this in production for security
-        });
-
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({
-            message: 'Internal server error',
-            error: error.message,
-        });
+    // Validate phone number
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Mobile number is required',
+      });
     }
+
+    // Check if user exists
+    const user = await User.findOne({ phone });
+    console.log('User found for OTP:', user);
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'This number is not registered',
+      });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000);
+
+    // Save OTP to DB 
+    user.otp = otp;
+    await user.save();
+
+    // Simulate sending OTP
+    console.log(`Sending OTP ${otp} to ${phone}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      otp, // remove this in production
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
 };
 
-// profile setup
-const profileSetup = async (req, res) => {
+
+//Login user with received OTP
+const receivedOtp = async (req, res) => {
+  try {
+    console.log('receivedOtp called');
+    console.log('Request body:', req.body);
+
+    const { phone, otp } = req.body;
+
+    // Validate input
+    if (!phone || !otp) {
+      return res.status(400).json({
+        message: 'Phone number and OTP are required',
+      });
+    }
+
+    // Find user by phone
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+      });
+    }
+
+    // Compare OTP (convert to same type)
+    if (String(user.otp) !== String(otp)) {
+      return res.status(401).json({
+        message: 'Invalid OTP',
+      });
+    }
+
+    // OTP is valid → clear it from DB
+    user.otp = undefined; // or null
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, phone: user.phone },
+      process.env.SECRET_KEY,
+      { expiresIn: '1h' }
+    );
+
+    console.log(`User ${user.phone} logged in successfully and OTP cleared`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+    });
+
+  } catch (error) {
+    console.error('Error in receivedOtp:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+//profile setup
+const createProfile = async (req, res) => {
+  try {
     console.log("profileSetup called");
-    console.log("Request body:", req.body);
     console.log("User from req.user:", req.user);
 
-    try {
-        const { about, image } = req.body;
+    const { about } = req.body;
+    const userId = req.user?._id;
 
-        if (!about || !image) {
-            console.log("Missing fields in request body");
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        const userId = req.user?._id;
-        if (!userId) {
-            console.log("User not found in token");
-            return res.status(401).json({ message: "Unauthorized: User not found in token" });
-        }
-
-        const updatedProfile = await User.findByIdAndUpdate(
-            userId,
-            {
-                about,
-                $push: { profilePhotos: { url: image } },
-            },
-            { new: true }
-        );
-
-        if (!updatedProfile) {
-            console.log("User not found in DB while updating");
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        console.log("Profile updated successfully for user:", updatedProfile._id);
-
-        return res.status(200).json({
-            message: "Profile setup completed successfully",
-            user: updatedProfile,
-        });
-
-    } catch (error) {
-        console.error("Error in profileSetup:", error.message);
-        return res.status(500).json({ message: "Server error", error: error.message });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User not found in token" });
     }
-};
+
+    if (!about) {
+      return res.status(400).json({ message: "About field is required" });
+    }
+
+    // Multer puts file info in req.file
+    if (!req.file) {
+      return res.status(400).json({ message: "Image file is required" });
+    }
+
+    // Create URL for uploaded image
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
+    // Update user profile
+    const updatedProfile = await User.findByIdAndUpdate(
+      userId,
+      {
+        about,
+        $push: { profilePhotos: { url: imageUrl } },
+      },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile setup completed successfully",
+      user: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Error in profileSetup:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+}
 
 //userProfile
 const userProfile = async (req, res) => {
@@ -449,8 +514,8 @@ const partnerPreferences = async (req, res) => {
 //send Follow Request
 const sendFollowRequest = async (req, res) => {
   try {
-    const usernameOne = req.user?.username; // requester (me)
-    const usernameTwo = req.params.username; // target user
+    const usernameOne = req.user?._id; // requester (me)
+    const usernameTwo = req.params.id; // target user
 
     console.log('Requester:', usernameOne);
     console.log('Target:', usernameTwo);
@@ -684,4 +749,4 @@ const getMatches = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, loginWithOtp, profileSetup, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };
+export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };

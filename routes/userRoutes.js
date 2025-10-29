@@ -3,8 +3,7 @@ import {
   userRegister,
   getUsers,
   loginUser,
-  loginWithOtp,
-  profileSetup,
+  createProfile,
   userProfile,
   partnerPreferences,
   sendFollowRequest,
@@ -12,10 +11,13 @@ import {
   rejectFollowRequest,
   getUserProfile,
   getMatches,
+  generateOtp,
+  receivedOtp,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
 import { validateUserRegistration } from '../middlewares/auth_register.js';
+import multer from '../utils/multer.js';
 
 const route = express.Router();
 
@@ -23,10 +25,12 @@ const route = express.Router();
 route.post('/register', userRegister);
 route.get('/getUser', getUsers);
 route.post('/login', loginUser);
-route.post('/otplogin', loginWithOtp);
+route.post('/generateOtp', generateOtp);
+route.post('/receivedOtp', receivedOtp);
 
 // Profile Management
-route.post('/profile', authMiddleware, profileSetup);
+// route.post('/profile', authMiddleware, profileSetup);
+route.post("/profile-setup", authMiddleware, multer.single("image"), createProfile);
 route.post('/user-profile', authMiddleware, userProfile);
 route.get('/profile', authMiddleware, getUserProfile);
 
