@@ -12,6 +12,7 @@ const userRegister = async (req, res) => {
       profileType,
       fullName,
       gender,
+      age,
       height,
       dateOfBirth,
       email,
@@ -20,6 +21,7 @@ const userRegister = async (req, res) => {
       religion,
       caste,
       subcaste,
+      manglik,
       education,
       otherQualification,
       annualIncome,
@@ -29,6 +31,7 @@ const userRegister = async (req, res) => {
       employedIn,
       maritalStatus,
       horoscope,
+      familyDetails,
     } = req.body;
 
     // Validation for required fields (username not required)
@@ -39,7 +42,8 @@ const userRegister = async (req, res) => {
       !dateOfBirth ||
       !email ||
       !phone ||
-      !password
+      !password ||
+      !age
     ) {
       return res
         .status(400)
@@ -62,6 +66,7 @@ const userRegister = async (req, res) => {
       profileType,
       fullName,
       gender,
+      age,
       height,
       dateOfBirth,
       email,
@@ -70,6 +75,7 @@ const userRegister = async (req, res) => {
       religion,
       caste,
       subcaste,
+      manglik,
       education,
       otherQualification,
       annualIncome,
@@ -79,6 +85,7 @@ const userRegister = async (req, res) => {
       employedIn,
       maritalStatus,
       horoscope,
+      familyDetails,
     });
 
     // Save user
@@ -300,20 +307,39 @@ const createProfile = async (req, res) => {
       return res.status(400).json({ message: "About field is required" });
     }
 
-    // Multer puts file info in req.file
-    if (!req.file) {
+    // Check for uploaded files
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "Image file is required" });
     }
 
-    // Create URL for uploaded image
-    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    // Fetch current user to check how many images already exist
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // Update user profile
+    const existingImages = user.profilePhotos || [];
+
+    // Build URLs for all uploaded images
+    const newImageUrls = req.files.map(file =>
+      `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+    );
+
+    // Enforce a maximum of 4 images total
+    if (existingImages.length + newImageUrls.length > 4) {
+      return res.status(400).json({
+        message: `You can upload a maximum of 4 images. You already have ${existingImages.length}.`,
+      });
+    }
+
+    // Update user profile (append new images)
     const updatedProfile = await User.findByIdAndUpdate(
       userId,
       {
         about,
-        $push: { profilePhotos: { url: imageUrl } },
+        $push: {
+          profilePhotos: { $each: newImageUrls.map(url => ({ url })) },
+        },
       },
       { new: true }
     );
@@ -330,57 +356,7 @@ const createProfile = async (req, res) => {
     console.error("Error in profileSetup:", error.message);
     res.status(500).json({ message: "Server error", error: error.message });
   }
-}
-
-//userProfile
-const userProfile = async (req, res) => {
-    console.log("profileSetup called");
-    console.log("Request body:", req.body);
-    console.log("User from req.user:", req.user);
-
-    try {
-        const { about, image } = req.body;
-
-        if (!about || !image) {
-            console.log("Missing fields in request body");
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        //taking user ID from the request
-        const userId = req.user?._id;
-        console.log('userID from the request', userId)
-        if (!userId) {
-            console.log("User not found in token");
-            return res.status(401).json({ message: "Unauthorized: User not found in token" });
-        }
-
-        const updatedProfile = await User.findByIdAndUpdate(
-            userId,
-            {
-                about,
-                $push: { profilePhotos: { url: image } },
-            },
-            { new: true }
-        );
-
-        if (!updatedProfile) {
-            console.log("User not found in DB while updating");
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        console.log("Profile updated successfully for user:", updatedProfile._id);
-
-        return res.status(200).json({
-            success: true,
-            message: "Profile setup completed successfully",
-            user: updatedProfile,
-        });
-
-    } catch (error) {
-        console.error("Error in profileSetup:", error.message);
-        return res.status(500).json({ message: "Server error", error: error.message });
-    }
-}
+};
 
 // get userProfile
 const getUserProfile = async (req, res) => {
@@ -426,10 +402,10 @@ const getUserProfile = async (req, res) => {
 }
 
 const partnerPreferences = async (req, res) => {
-    const { age, height, state, qualification, income, cast, language, manglik, city, occupation, religion } = req.body;
+    const { age, heightRange, state, education, income, cast, language, manglik, city, occupation, religion } = req.body;
 
     //validations if any fields requred
-    if(!age, !height, !state, !qualification, !income, !cast, !language, !manglik, !city, !occupation, !religion){
+    if(!age, !heightRange, !state, !education, !income, !cast, !language, !manglik, !city, !occupation, !religion){
         res.status(500).json({
             success: false,
             message: 'all fields are required'
@@ -460,14 +436,17 @@ const partnerPreferences = async (req, res) => {
                             min: age.min || age, // supports single value or object {min, max}
                             max: age.max || age,
                         },
-                        height,
+                        heightRange: {
+                            min: heightRange.min || heightRange,
+                            max: heightRange.max || heightRange,
+                        },
                         religion,
                         caste: cast,
                         location: {
                             state,
                             city,
                         },
-                        education: qualification,
+                        education,
                         occupation,
                         income,
                         language,
@@ -749,4 +728,4 @@ const getMatches = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, userProfile, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };
+export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };

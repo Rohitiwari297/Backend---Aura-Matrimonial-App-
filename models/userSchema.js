@@ -19,6 +19,10 @@ const userSchema = new mongoose.Schema({
 //   unique: false, // or just remove this line entirely
 //   sparse: true,  // optional: allows null/undefined values without index errors
 // },
+  age : {
+    type: Number,
+    required: true,
+  },
   gender: {
     type: String,
     enum: [genderType.male, genderType.female, genderType.other],
@@ -50,6 +54,7 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
 
   // Profile Details
+  about : { type: String },
   profilePhotos: [
     {
       url: { type: String },
@@ -59,6 +64,7 @@ const userSchema = new mongoose.Schema({
   religion: { type: String },
   caste: { type: String },
   subcaste: { type: String },
+  manglik: { type: String },
   education: { type: String },
   otherQualification: { type: String },
   occupation: { type: String },
@@ -67,6 +73,20 @@ const userSchema = new mongoose.Schema({
   employedIn: { type: String },
   maritalStatus: { type: String },
   horoscope: { type: String },
+  // Family Details
+  familyDetails: {
+    aboutFamily: { type: String },
+    familyBackground: { type: String },
+    familyIncome: { type: String },
+    fatherOccupation: { type: String },
+    motherOccupation: { type: String },
+    siblingsCount: { 
+      type: Number,
+      default: 1
+    },
+    livingWithParents: { type: String },
+    familyBasedIn: { type: String },
+  },
 
   // Location
   location: {

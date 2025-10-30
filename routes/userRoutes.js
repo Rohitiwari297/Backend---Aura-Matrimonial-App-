@@ -4,7 +4,6 @@ import {
   getUsers,
   loginUser,
   createProfile,
-  userProfile,
   partnerPreferences,
   sendFollowRequest,
   acceptFollowRequest,
@@ -29,9 +28,7 @@ route.post('/generateOtp', generateOtp);
 route.post('/receivedOtp', receivedOtp);
 
 // Profile Management
-// route.post('/profile', authMiddleware, profileSetup);
-route.post("/profile-setup", authMiddleware, multer.single("image"), createProfile);
-route.post('/user-profile', authMiddleware, userProfile);
+route.post("/profile-setup", authMiddleware, multer.array("image", 4), createProfile);
 route.get('/profile', authMiddleware, getUserProfile);
 
 // Partner Preferences
@@ -39,8 +36,8 @@ route.post('/user-preference', authMiddleware, partnerPreferences);
 route.get('/preference-matches', authMiddleware, getMatches);
 
 // Follow System
-route.post('/follow/:username', authMiddleware, sendFollowRequest);
-route.post('/follow/accept/:username', authMiddleware, acceptFollowRequest);
-route.post('/follow/reject/:username', authMiddleware, rejectFollowRequest);
+route.post('/follow/:id', authMiddleware, sendFollowRequest);
+route.post('/follow/accept/:id', authMiddleware, acceptFollowRequest);
+route.post('/follow/reject/:id', authMiddleware, rejectFollowRequest);
 
 export default route;
