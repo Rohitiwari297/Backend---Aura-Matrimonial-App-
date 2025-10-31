@@ -12,6 +12,7 @@ import {
   getMatches,
   generateOtp,
   receivedOtp,
+  updateUser,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
@@ -24,6 +25,7 @@ const route = express.Router();
 route.post('/register', userRegister);
 route.get('/getUser', getUsers);
 route.post('/login', loginUser);
+route.put('/updateUser', authMiddleware, updateUser);
 route.post('/generateOtp', generateOtp);
 route.post('/receivedOtp', receivedOtp);
 

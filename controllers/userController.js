@@ -109,7 +109,6 @@ const userRegister = async (req, res) => {
   }
 };
 
-
 // Get all users 
 const getUsers = async (req, res) => {
     console.log('hello')
@@ -178,6 +177,141 @@ const loginUser = async (req, res) => {
     }
 
 
+
+}
+
+// update user details 
+const updateUser = async (req, res) => {
+    try {
+      // Get user ID from auth middleware
+      const userId = req.user?._id;
+
+      // Validate user ID
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized: User not found in token" });
+      }
+
+      // Extract fields to update from request body
+      const {
+        profileType,
+        fullName,
+        gender,
+        age,
+        height,
+        dateOfBirth,
+        religion,
+        caste,
+        subcaste,
+        manglik,
+        education,
+        annualIncome,
+        occupation,
+        location,
+        workLocation,
+        employedIn,
+        maritalStatus,
+        horoscope,
+        familyDetails,
+      } = req.body;
+
+      //  validations for required fields
+      if (
+        !profileType ||
+        !fullName ||
+        !gender ||
+        !age ||
+        !height ||
+        !dateOfBirth ||
+        !religion ||
+        !caste ||
+        !subcaste ||
+        !manglik ||
+        !education ||
+        !annualIncome ||
+        !occupation ||
+        !location ||
+        !workLocation ||
+        !employedIn ||
+        !maritalStatus ||
+        !horoscope ||
+        !familyDetails
+      ) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "All required fields must be filled" 
+        });
+      }
+      
+      // Find user by ID and update details
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          profileType,
+          fullName,
+          gender,
+          age,
+          height,
+          dateOfBirth,
+          religion,
+          caste,
+          subcaste,
+          manglik,
+          education,
+          annualIncome,
+          occupation,
+          location,
+          workLocation,
+          employedIn,
+          maritalStatus,
+          horoscope,
+          familyDetails
+        },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: "User updated successfully",
+        data: {
+          profileType,
+          fullName,
+          gender,
+          age,
+          height,
+          dateOfBirth,
+          religion,
+          caste,
+          subcaste,
+          manglik,
+          education,
+          annualIncome,
+          occupation,
+          location,
+          workLocation,
+          employedIn,
+          maritalStatus,
+          horoscope,
+          familyDetails,
+        },
+      });
+    } catch (error) {
+      console.error("Error in updateUser:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
+    }
+
+    
 
 }
 
@@ -493,44 +627,39 @@ const partnerPreferences = async (req, res) => {
 //send Follow Request
 const sendFollowRequest = async (req, res) => {
   try {
-    const usernameOne = req.user?._id; // requester (me)
-    const usernameTwo = req.params.id; // target user
+    const userOneId = req.user?._id; // requester
+    const userTwoId = req.params.id; // target user id
 
-    console.log('Requester:', usernameOne);
-    console.log('Target:', usernameTwo);
-
-    if (!usernameOne || !usernameTwo) {
+    if (!userOneId || !userTwoId) {
       return res.status(400).json({ success: false, message: 'Invalid request' });
     }
 
-    if (usernameOne === usernameTwo) {
+    if (userOneId.toString() === userTwoId.toString()) {
       return res.status(400).json({ success: false, message: "You can't follow yourself" });
     }
 
-    const targetUser = await User.findOne({ username: usernameTwo });
+    const targetUser = await User.findById(userTwoId);
     if (!targetUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Check if already following or requested
-    if (targetUser.followers.includes(usernameOne)) {
+    if (targetUser.followers.includes(userOneId)) {
       return res.status(400).json({ success: false, message: 'Already following this user' });
     }
 
-    if (targetUser.followRequests.includes(usernameOne)) {
+    if (targetUser.followRequests.includes(userOneId)) {
       return res.status(400).json({ success: false, message: 'Follow request already sent' });
     }
 
-    // Add follow request to receiver and sent request to sender
-    await User.findOneAndUpdate(
-      { username: usernameTwo },
-      { $addToSet: { followRequests: usernameOne } },
+    await User.findByIdAndUpdate(
+      userTwoId,
+      { $addToSet: { followRequests: userOneId } },
       { new: true }
     );
 
-    await User.findOneAndUpdate(
-      { username: usernameOne },
-      { $addToSet: { sentRequests: usernameTwo } },
+    await User.findByIdAndUpdate(
+      userOneId,
+      { $addToSet: { sentRequests: userTwoId } },
       { new: true }
     );
 
@@ -540,41 +669,36 @@ const sendFollowRequest = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
-
+  
 //accept Follow Request
 const acceptFollowRequest = async (req, res) => {
   try {
-    const usernameOne = req.user?.username; // me (the receiver)
-    const usernameTwo = req.params.username; // sender of the request
+    const receiverId = req.user._id;        // me (receiver)
+    const senderId = req.params.id;         // sender
 
-    console.log('Receiver:', usernameOne);
-    console.log('Sender:', usernameTwo);
+    console.log('Receiver:', receiverId);
+    console.log('Sender:', senderId);
 
-    const user = await User.findOne({ username: usernameOne });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const receiver = await User.findById(receiverId);
+    if (!receiver) {
+      return res.status(404).json({ success: false, message: 'Receiver not found' });
+    }
 
     // Check if request exists
-    if (!user.followRequests.includes(usernameTwo)) {
+    if (!receiver.followRequests.includes(senderId)) {
       return res.status(400).json({ success: false, message: 'No follow request from this user' });
     }
 
     // Update both users
-    await User.findOneAndUpdate(
-      { username: usernameOne },
-      {
-        $pull: { followRequests: usernameTwo },
-        $addToSet: { followers: usernameTwo },
-      }
-    );
+    await User.findByIdAndUpdate(receiverId, {
+      $pull: { followRequests: senderId },
+      $addToSet: { followers: senderId },
+    });
 
-    await User.findOneAndUpdate(
-      { username: usernameTwo },
-      {
-        $pull: { sentRequests: usernameOne },
-        $addToSet: { followings: usernameOne },
-      }
-    );
+    await User.findByIdAndUpdate(senderId, {
+      $pull: { sentRequests: receiverId },
+      $addToSet: { followings: receiverId },
+    });
 
     return res.status(200).json({ success: true, message: 'Follow request accepted' });
   } catch (error) {
@@ -582,6 +706,7 @@ const acceptFollowRequest = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
+
 
 
 //reject Follow Request
@@ -728,4 +853,4 @@ const getMatches = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches };
+export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches, updateUser };
