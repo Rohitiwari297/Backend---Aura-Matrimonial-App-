@@ -634,15 +634,26 @@ const sendFollowRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid request' });
     }
 
+    // console.log('Requester without using toString():', userOneId);
+    // console.log('Target User with toString():', userTwoId.toString());
+
+
+    // Prevent self-following 
     if (userOneId.toString() === userTwoId.toString()) {
       return res.status(400).json({ success: false, message: "You can't follow yourself" });
     }
 
+
+    /** Check if target user exists in easy words we can say userTwo exists or not if not then return error, 
+     * means this type of user is not present in db/ 
+     * not registered that's why we anaable to send follow request 
+     * */
     const targetUser = await User.findById(userTwoId);
     if (!targetUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Check if already following or request sent
     if (targetUser.followers.includes(userOneId)) {
       return res.status(400).json({ success: false, message: 'Already following this user' });
     }
@@ -712,29 +723,33 @@ const acceptFollowRequest = async (req, res) => {
 //reject Follow Request
 const rejectFollowRequest = async (req, res) => {
   try {
-    const usernameOne = req.user?.username; // me (the receiver)
-    const usernameTwo = req.params.username; // sender of the request
+    const loggedInUserId = req.user._id; // me (the receiver)
+    const targetUserId = req.params.id; // sender of the request
 
-    console.log('Receiver:', usernameOne);
-    console.log('Sender:', usernameTwo);
+    console.log('Receiver:', loggedInUserId);
+    console.log('Sender:', targetUserId);
 
-    const user = await User.findOne({ username: usernameOne });
+    // validate target user existence
+    const targetUser = await User.findOne({ _id: targetUserId });
+
+
+    const user = await User.findOne({ _id: targetUserId});
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     // Check if request exists
-    if (!user.followRequests.includes(usernameTwo)) {
+    if (!user.sentRequests.includes(loggedInUserId)) {
       return res.status(400).json({ success: false, message: 'No follow request from this user' });
     }
 
     // Remove request from both users
     await User.findOneAndUpdate(
-      { username: usernameOne },
-      { $pull: { followRequests: usernameTwo } }
+      { _id: loggedInUserId },
+      { $pull: { followRequests: targetUserId } }
     );
 
     await User.findOneAndUpdate(
-      { username: usernameTwo },
-      { $pull: { sentRequests: usernameOne } }
+      { _id: targetUserId },
+      { $pull: { sentRequests: loggedInUserId } }
     );
 
     return res.status(200).json({ success: true, message: 'Follow request rejected' });
@@ -743,6 +758,108 @@ const rejectFollowRequest = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
+
+//Cancel Follow Request
+const cancelSendRequest = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id; // me (the requester sender )
+    const targetUserId = req.params.id; // target user
+    console.log('Requester:', loggedInUserId);
+    console.log('Target User:', targetUserId);
+
+    // Check if target user exists
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // Check if already sent request
+    if (!targetUser.sentRequests.includes(loggedInUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'No follow request sent to this user'
+      })
+    }
+
+    // Remove request from both users
+    await User.findByIdAndUpdate(
+      targetUserId,
+      { $pull: {sentRequests: loggedInUserId } } // remove from sentRequests of target user
+    );
+
+    await User.findByIdAndUpdate(
+      loggedInUserId,
+      { $pull: { followRequests: targetUserId } } // remove from followRequests of logged-in user
+    )
+
+    //send response
+    return res.status(200).json({
+      success: true,
+      message: 'Follow request cancelled successfully'
+    })
+
+  } catch (error) {
+    res.status(500).json({
+        success: false,
+        error: error.message,
+    })
+  }
+}
+
+// unfollow user
+const unfollowRequest = async (req, res) => {
+  try {
+
+    // Get logged-in user and target user IDs
+    const loggedInUserId = req.user._id; // me (the follower)
+    const targetUserId = req.params.id; // target user
+
+    console.log('loggedInUser', loggedInUserId)
+    console.log('targetUser', targetUserId)
+
+    // Check if target user exists in the db
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // Check if already following or not
+    if (!targetUser.followers.includes(loggedInUserId)) {
+      return res.status (400).json({
+        success: false,
+        message: 'User not in your follower List'
+      })
+    }else{
+      // Remove follower and following relationship
+      await User.findByIdAndUpdate(
+        targetUserId,
+        { $pull: { followers: loggedInUserId } } // remove from followers of target user
+      );
+    }
+
+    // Remove following relationship from logged-in user
+    await User.findByIdAndUpdate(
+      loggedInUserId,
+      { $pull: { following: targetUserId } } // remove from following of logged-in user
+    );
+    //send response
+    return res.status(200).json({
+      success: true,
+      message: 'Unfollowed user successfully'
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    })
+  }
+}
 
 //Recommendations on behalf of preference
 const getMatches = async (req, res) => {
@@ -853,4 +970,4 @@ const getMatches = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, getUserProfile, getMatches, updateUser };
+export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, cancelSendRequest, unfollowRequest, getUserProfile, getMatches, updateUser };

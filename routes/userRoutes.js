@@ -13,6 +13,7 @@ import {
   generateOtp,
   receivedOtp,
   updateUser,
+  unfollowRequest,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
@@ -39,7 +40,9 @@ route.get('/preference-matches', authMiddleware, getMatches);
 
 // Follow System
 route.post('/follow/:id', authMiddleware, sendFollowRequest);
+route.post('/unfollow/:id', authMiddleware, unfollowRequest);
 route.post('/follow/accept/:id', authMiddleware, acceptFollowRequest);
 route.post('/follow/reject/:id', authMiddleware, rejectFollowRequest);
+
 
 export default route;
