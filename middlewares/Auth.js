@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userSchema.js";
+import { roleTypes } from "../utils/constants.js";
 
-const authMiddleware = async (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   console.log(" authMiddleware called"); // debug log
 
   try {
@@ -41,4 +42,13 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
+export const isAdmin = (req, res, next) => {
+  console.log(" isAdmin middleware called for user:", req.user._id);
+  console.log(" User roleType:", req.user.roleType);
+  if (req.user.roleType === roleTypes.admin) {
+    next();
+  } else {
+    return res.status(403).json({ message: "Access denied, admin only" });
+  }
+};
 export default authMiddleware;

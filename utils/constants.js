@@ -14,3 +14,14 @@ export const genderType = {
     female: 'FEMALE',
     other: 'OTHER',
 }
+
+export const subscriptionTypes = {
+    monthly: 'MONTHLY',
+    halfYearly: 'HALF_YEARLY',
+    yearly: 'YEARLY',
+}
+
+export const roleTypes = {
+    user: 'User',
+    admin: 'Admin',
+}

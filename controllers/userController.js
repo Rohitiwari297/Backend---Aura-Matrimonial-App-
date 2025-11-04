@@ -1,12 +1,14 @@
+//imports
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
-
 //DB
-import User from '../models/userSchema.js'
+import User from '../models/userSchema.js';
+
+//controllers 
 
 // User registration 
-const userRegister = async (req, res) => {
+export const userRegister = async (req, res) => {
   try {
     const {
       profileType,
@@ -109,8 +111,90 @@ const userRegister = async (req, res) => {
   }
 };
 
+// Edit user details
+export const editUser = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    const {
+      profileType,
+      fullName,
+      gender,
+      age,
+      height,
+      dateOfBirth,
+      email,
+      phone,
+      religion,
+      caste,
+      subcaste,
+      manglik,
+      education,
+      annualIncome,
+      occupation,
+      location,
+      workLocation,
+      employedIn,
+      maritalStatus,
+      horoscope,
+      familyDetails,
+    } = req.body;
+
+    // Validate user ID
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User not found in token" });
+    }
+
+    // Find user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user details
+    user.profileType = profileType || user.profileType;
+    user.fullName = fullName || user.fullName;
+    user.gender = gender || user.gender;
+    user.age = age || user.age;
+    user.height = height || user.height;
+    user.dateOfBirth = dateOfBirth || user.dateOfBirth;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.religion = religion || user.religion;
+    user.caste = caste || user.caste;
+    user.subcaste = subcaste || user.subcaste;
+    user.manglik = manglik || user.manglik;
+    user.education = education || user.education;
+    user.annualIncome = annualIncome || user.annualIncome;
+    user.occupation = occupation || user.occupation;
+    user.location = location || user.location;
+    user.workLocation = workLocation || user.workLocation;
+    user.employedIn = employedIn || user.employedIn;
+    user.maritalStatus = maritalStatus || user.maritalStatus;
+    user.horoscope = horoscope || user.horoscope;
+    user.familyDetails = familyDetails || user.familyDetails;
+
+    // Save updated user
+    await user.save();
+
+    res.status(200).json({
+      message: "User details updated successfully",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 // Get all users 
-const getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
     console.log('hello')
     //fetch all the users
     try {
@@ -129,7 +213,7 @@ const getUsers = async (req, res) => {
 };
 
 // Login user with email & password
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
     //received data from the user
     const { email, password } = req.body;
 
@@ -180,8 +264,31 @@ const loginUser = async (req, res) => {
 
 }
 
+// Logout user
+export const logoutUser = async (req, res) => {
+    try {
+        const userId = req.user?._id;
+
+        // Validate user ID
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized: User not found in token" });
+        }
+
+        // Remove user from active sessions (if applicable)
+        // This is just a placeholder, implement your session management logic
+        await User.findByIdAndUpdate(userId, { $set: { isLoggedIn: false } });
+
+        return res.status(200).json({ message: "User logged out successfully" });
+    } catch (error) {
+        res.status(500).json({
+            message: "Server error",
+            error: error.message,
+        });
+    }
+};
+
 // update user details 
-const updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
     try {
       // Get user ID from auth middleware
       const userId = req.user?._id;
@@ -315,554 +422,8 @@ const updateUser = async (req, res) => {
 
 }
 
-// Login user with mobile number otp
-const generateOtp = async (req, res) => {
-  try {
-    console.log('Printing req header:', req.headers);
-    console.log('GenerateOtp called');
-    console.log('Request body:', req.body);
-    const { phone } = req.body;
-
-    // Validate phone number
-    if (!phone) {
-      return res.status(400).json({
-        message: 'Mobile number is required',
-      });
-    }
-
-    // Check if user exists
-    const user = await User.findOne({ phone });
-    console.log('User found for OTP:', user);
-
-    if (!user) {
-      return res.status(404).json({
-        message: 'This number is not registered',
-      });
-    }
-
-    // Generate 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000);
-
-    // Save OTP to DB 
-    user.otp = otp;
-    await user.save();
-
-    // Simulate sending OTP
-    console.log(`Sending OTP ${otp} to ${phone}`);
-
-    return res.status(200).json({
-      success: true,
-      message: 'OTP sent successfully',
-      otp, // remove this in production
-    });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      error: error.message,
-    });
-  }
-};
-
-
-//Login user with received OTP
-const receivedOtp = async (req, res) => {
-  try {
-    console.log('receivedOtp called');
-    console.log('Request body:', req.body);
-
-    const { phone, otp } = req.body;
-
-    // Validate input
-    if (!phone || !otp) {
-      return res.status(400).json({
-        message: 'Phone number and OTP are required',
-      });
-    }
-
-    // Find user by phone
-    const user = await User.findOne({ phone });
-    if (!user) {
-      return res.status(404).json({
-        message: 'User not found',
-      });
-    }
-
-    // Compare OTP (convert to same type)
-    if (String(user.otp) !== String(otp)) {
-      return res.status(401).json({
-        message: 'Invalid OTP',
-      });
-    }
-
-    // OTP is valid → clear it from DB
-    user.otp = undefined; // or null
-    await user.save();
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id, phone: user.phone },
-      process.env.SECRET_KEY,
-      { expiresIn: '1h' }
-    );
-
-    console.log(`User ${user.phone} logged in successfully and OTP cleared`);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      token,
-    });
-
-  } catch (error) {
-    console.error('Error in receivedOtp:', error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      error: error.message,
-    });
-  }
-};
-
-//profile setup
-const createProfile = async (req, res) => {
-  try {
-    console.log("profileSetup called");
-    console.log("User from req.user:", req.user);
-
-    const { about } = req.body;
-    const userId = req.user?._id;
-
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: User not found in token" });
-    }
-
-    if (!about) {
-      return res.status(400).json({ message: "About field is required" });
-    }
-
-    // Check for uploaded files
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Image file is required" });
-    }
-
-    // Fetch current user to check how many images already exist
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const existingImages = user.profilePhotos || [];
-
-    // Build URLs for all uploaded images
-    const newImageUrls = req.files.map(file =>
-      `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
-    );
-
-    // Enforce a maximum of 4 images total
-    if (existingImages.length + newImageUrls.length > 4) {
-      return res.status(400).json({
-        message: `You can upload a maximum of 4 images. You already have ${existingImages.length}.`,
-      });
-    }
-
-    // Update user profile (append new images)
-    const updatedProfile = await User.findByIdAndUpdate(
-      userId,
-      {
-        about,
-        $push: {
-          profilePhotos: { $each: newImageUrls.map(url => ({ url })) },
-        },
-      },
-      { new: true }
-    );
-
-    if (!updatedProfile) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json({
-      message: "Profile setup completed successfully",
-      user: updatedProfile,
-    });
-  } catch (error) {
-    console.error("Error in profileSetup:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// get userProfile
-const getUserProfile = async (req, res) => {
-
-    try {
-        
-        //received query parameter 
-        const userId = req.user?._id;
-    
-        console.log('fatching present user',userId);
-    
-        if(!userId){
-            res.status(401).json({
-                success: false,
-                message: 'user not found, please login'
-            })
-        }
-    
-        const user = await User.findById(userId).select("-password");
-    
-        // If no user found
-        if (!user) {
-          return res.status(404).json({
-            success: false,
-            message: "User does not exist",
-          });
-        }
-    
-        return res.status(200).json({
-          success: true,
-          message: "Profile fetched successfully",
-          user,
-        });
-    } catch (error) {
-        console.error("Error fetching user profile:", error);
-        return res.status(500).json({
-        success: false,
-        message: "Internal Server Error",
-        error: error.message,
-        });
-    }
-
-}
-
-const partnerPreferences = async (req, res) => {
-    const { age, heightRange, state, education, income, cast, language, manglik, city, occupation, religion } = req.body;
-
-    //validations if any fields requred
-    if(!age, !heightRange, !state, !education, !income, !cast, !language, !manglik, !city, !occupation, !religion){
-        res.status(500).json({
-            success: false,
-            message: 'all fields are required'
-        })
-    }
-    //try-catch
-    try {
-        //update on behalf of the userID
-        const userId = req.user?.id;
-        console.log('userid from the user', userId)
-
-        if (!userId) {
-
-            res.status(401).json({
-                success: false,
-                message: 'Unauthorized: User not found in token'
-            })
-
-        }
-
-        //Update user partner preferences
-        const updatePreference = await User.findByIdAndUpdate(
-            userId,
-            {
-                $set: {
-                    partnerPreferences: {
-                        ageRange: {
-                            min: age.min || age, // supports single value or object {min, max}
-                            max: age.max || age,
-                        },
-                        heightRange: {
-                            min: heightRange.min || heightRange,
-                            max: heightRange.max || heightRange,
-                        },
-                        religion,
-                        caste: cast,
-                        location: {
-                            state,
-                            city,
-                        },
-                        education,
-                        occupation,
-                        income,
-                        language,
-                        manglik,
-                    },
-
-                }
-            },
-            { new: true } // for returns updated document
-        )
-
-        //validations
-        if (!updatePreference) {
-            return res.status(404).json({
-                success: false,
-                message: "User not found",
-            });
-
-           
-
-        }
-
-         //send respons
-
-        res.status(200).json({
-            success: true,
-            message: "Partner preferences updated successfully",
-            data: updatePreference.partnerPreferences,
-        });
-
-
-
-    } catch (error) {
-        console.error("Error updating partner preferences:", error);
-        res.status(500).json({
-            success: false,
-            message: "Internal Server Error",
-
-        });
-    }
-
-}
-
-//send Follow Request
-const sendFollowRequest = async (req, res) => {
-  try {
-    const userOneId = req.user?._id; // requester
-    const userTwoId = req.params.id; // target user id
-
-    if (!userOneId || !userTwoId) {
-      return res.status(400).json({ success: false, message: 'Invalid request' });
-    }
-
-    // console.log('Requester without using toString():', userOneId);
-    // console.log('Target User with toString():', userTwoId.toString());
-
-
-    // Prevent self-following 
-    if (userOneId.toString() === userTwoId.toString()) {
-      return res.status(400).json({ success: false, message: "You can't follow yourself" });
-    }
-
-
-    /** Check if target user exists in easy words we can say userTwo exists or not if not then return error, 
-     * means this type of user is not present in db/ 
-     * not registered that's why we anaable to send follow request 
-     * */
-    const targetUser = await User.findById(userTwoId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // Check if already following or request sent
-    if (targetUser.followers.includes(userOneId)) {
-      return res.status(400).json({ success: false, message: 'Already following this user' });
-    }
-
-    if (targetUser.followRequests.includes(userOneId)) {
-      return res.status(400).json({ success: false, message: 'Follow request already sent' });
-    }
-
-    await User.findByIdAndUpdate(
-      userTwoId,
-      { $addToSet: { followRequests: userOneId } },
-      { new: true }
-    );
-
-    await User.findByIdAndUpdate(
-      userOneId,
-      { $addToSet: { sentRequests: userTwoId } },
-      { new: true }
-    );
-
-    return res.status(200).json({ success: true, message: 'Follow request sent successfully' });
-  } catch (error) {
-    console.error('Error in sendFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-  
-//accept Follow Request
-const acceptFollowRequest = async (req, res) => {
-  try {
-    const receiverId = req.user._id;        // me (receiver)
-    const senderId = req.params.id;         // sender
-
-    console.log('Receiver:', receiverId);
-    console.log('Sender:', senderId);
-
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      return res.status(404).json({ success: false, message: 'Receiver not found' });
-    }
-
-    // Check if request exists
-    if (!receiver.followRequests.includes(senderId)) {
-      return res.status(400).json({ success: false, message: 'No follow request from this user' });
-    }
-
-    // Update both users
-    await User.findByIdAndUpdate(receiverId, {
-      $pull: { followRequests: senderId },
-      $addToSet: { followers: senderId },
-    });
-
-    await User.findByIdAndUpdate(senderId, {
-      $pull: { sentRequests: receiverId },
-      $addToSet: { followings: receiverId },
-    });
-
-    return res.status(200).json({ success: true, message: 'Follow request accepted' });
-  } catch (error) {
-    console.error('Error in acceptFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-
-
-//reject Follow Request
-const rejectFollowRequest = async (req, res) => {
-  try {
-    const loggedInUserId = req.user._id; // me (the receiver)
-    const targetUserId = req.params.id; // sender of the request
-
-    console.log('Receiver:', loggedInUserId);
-    console.log('Sender:', targetUserId);
-
-    // validate target user existence
-    const targetUser = await User.findOne({ _id: targetUserId });
-
-
-    const user = await User.findOne({ _id: targetUserId});
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Check if request exists
-    if (!user.sentRequests.includes(loggedInUserId)) {
-      return res.status(400).json({ success: false, message: 'No follow request from this user' });
-    }
-
-    // Remove request from both users
-    await User.findOneAndUpdate(
-      { _id: loggedInUserId },
-      { $pull: { followRequests: targetUserId } }
-    );
-
-    await User.findOneAndUpdate(
-      { _id: targetUserId },
-      { $pull: { sentRequests: loggedInUserId } }
-    );
-
-    return res.status(200).json({ success: true, message: 'Follow request rejected' });
-  } catch (error) {
-    console.error('Error in rejectFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-//Cancel Follow Request
-const cancelSendRequest = async (req, res) => {
-  try {
-    const loggedInUserId = req.user._id; // me (the requester sender )
-    const targetUserId = req.params.id; // target user
-    console.log('Requester:', loggedInUserId);
-    console.log('Target User:', targetUserId);
-
-    // Check if target user exists
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    // Check if already sent request
-    if (!targetUser.sentRequests.includes(loggedInUserId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'No follow request sent to this user'
-      })
-    }
-
-    // Remove request from both users
-    await User.findByIdAndUpdate(
-      targetUserId,
-      { $pull: {sentRequests: loggedInUserId } } // remove from sentRequests of target user
-    );
-
-    await User.findByIdAndUpdate(
-      loggedInUserId,
-      { $pull: { followRequests: targetUserId } } // remove from followRequests of logged-in user
-    )
-
-    //send response
-    return res.status(200).json({
-      success: true,
-      message: 'Follow request cancelled successfully'
-    })
-
-  } catch (error) {
-    res.status(500).json({
-        success: false,
-        error: error.message,
-    })
-  }
-}
-
-// unfollow user
-const unfollowRequest = async (req, res) => {
-  try {
-
-    // Get logged-in user and target user IDs
-    const loggedInUserId = req.user._id; // me (the follower)
-    const targetUserId = req.params.id; // target user
-
-    console.log('loggedInUser', loggedInUserId)
-    console.log('targetUser', targetUserId)
-
-    // Check if target user exists in the db
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    // Check if already following or not
-    if (!targetUser.followers.includes(loggedInUserId)) {
-      return res.status (400).json({
-        success: false,
-        message: 'User not in your follower List'
-      })
-    }else{
-      // Remove follower and following relationship
-      await User.findByIdAndUpdate(
-        targetUserId,
-        { $pull: { followers: loggedInUserId } } // remove from followers of target user
-      );
-    }
-
-    // Remove following relationship from logged-in user
-    await User.findByIdAndUpdate(
-      loggedInUserId,
-      { $pull: { following: targetUserId } } // remove from following of logged-in user
-    );
-    //send response
-    return res.status(200).json({
-      success: true,
-      message: 'Unfollowed user successfully'
-    })
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    })
-  }
-}
-
-//Recommendations on behalf of preference
-const getMatches = async (req, res) => {
+///Recommendations on behalf of partner preference
+export const getMatches = async (req, res) => {
 
     try {
         
@@ -960,6 +521,651 @@ const getMatches = async (req, res) => {
 
 }
 
+// Login user with mobile number otp
+export const generateOtp = async (req, res) => {
+  try {
+    console.log('Printing req header:', req.headers);
+    console.log('GenerateOtp called');
+    console.log('Request body:', req.body);
+    const { phone } = req.body;
+
+    // Validate phone number
+    if (!phone) {
+      return res.status(400).json({
+        message: 'Mobile number is required',
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ phone });
+    console.log('User found for OTP:', user);
+
+    if (!user) {
+      return res.status(404).json({
+        message: 'This number is not registered',
+      });
+    }
+
+    // Generate 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000);
+
+    // Save OTP to DB 
+    user.otp = otp;
+    await user.save();
+
+    // Simulate sending OTP
+    console.log(`Sending OTP ${otp} to ${phone}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      otp, // remove this in production
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+
+//Login user with received OTP
+export const receivedOtp = async (req, res) => {
+  try {
+    console.log('receivedOtp called');
+    console.log('Request body:', req.body);
+
+    const { phone, otp } = req.body;
+
+    // Validate input
+    if (!phone || !otp) {
+      return res.status(400).json({
+        message: 'Phone number and OTP are required',
+      });
+    }
+
+    // Find user by phone
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({
+        message: 'User not found',
+      });
+    }
+
+    // Compare OTP (convert to same type)
+    if (String(user.otp) !== String(otp)) {
+      return res.status(401).json({
+        message: 'Invalid OTP',
+      });
+    }
+
+    // OTP is valid → clear it from DB
+    user.otp = undefined; // or null
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, phone: user.phone },
+      process.env.SECRET_KEY,
+      { expiresIn: '1h' }
+    );
+
+    console.log(`User ${user.phone} logged in successfully and OTP cleared`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+    });
+
+  } catch (error) {
+    console.error('Error in receivedOtp:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: error.message,
+    });
+  }
+};
+
+//profile setup
+export const createProfile = async (req, res) => {
+  try {
+    console.log("profileSetup called");
+    console.log("User from req.user:", req.user);
+
+    const { about } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: User not found in token" });
+    }
+
+    if (!about) {
+      return res.status(400).json({ message: "About field is required" });
+    }
+
+    // Check for uploaded files
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Image file is required" });
+    }
+
+    // Fetch current user to check how many images already exist
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const existingImages = user.profilePhotos || [];
+
+    // Build URLs for all uploaded images
+    const newImageUrls = req.files.map(file =>
+      `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+    );
+
+    // Enforce a maximum of 4 images total
+    if (existingImages.length + newImageUrls.length > 4) {
+      return res.status(400).json({
+        message: `You can upload a maximum of 4 images. You already have ${existingImages.length}.`,
+      });
+    }
+
+    // Update user profile (append new images)
+    const updatedProfile = await User.findByIdAndUpdate(
+      userId,
+      {
+        about,
+        $push: {
+          profilePhotos: { $each: newImageUrls.map(url => ({ url })) },
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile setup completed successfully",
+      user: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Error in profileSetup:", error.message);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// get userProfile
+export const getUserProfile = async (req, res) => {
+
+    try {
+        
+        //received query parameter 
+        const userId = req.user?._id;
+    
+        console.log('fatching present user',userId);
+    
+        if(!userId){
+            res.status(401).json({
+                success: false,
+                message: 'user not found, please login'
+            })
+        }
+    
+        const user = await User.findById(userId).select("-password");
+    
+        // If no user found
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "User does not exist",
+          });
+        }
+    
+        return res.status(200).json({
+          success: true,
+          message: "Profile fetched successfully",
+          user,
+        });
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+        error: error.message,
+        });
+    }
+
+}
+
+export const partnerPreferences = async (req, res) => {
+    const { age, heightRange, state, education, income, cast, language, manglik, city, occupation, religion } = req.body;
+
+    //validations if any fields requred
+    if(!age, !heightRange, !state, !education, !income, !cast, !language, !manglik, !city, !occupation, !religion){
+        res.status(500).json({
+            success: false,
+            message: 'all fields are required'
+        })
+    }
+    //try-catch
+    try {
+        //update on behalf of the userID
+        const userId = req.user?.id;
+        console.log('userid from the user', userId)
+
+        if (!userId) {
+
+            res.status(401).json({
+                success: false,
+                message: 'Unauthorized: User not found in token'
+            })
+
+        }
+
+        //Update user partner preferences
+        const updatePreference = await User.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    partnerPreferences: {
+                        ageRange: {
+                            min: age.min || age, // supports single value or object {min, max}
+                            max: age.max || age,
+                        },
+                        heightRange: {
+                            min: heightRange.min || heightRange,
+                            max: heightRange.max || heightRange,
+                        },
+                        religion,
+                        caste: cast,
+                        location: {
+                            state,
+                            city,
+                        },
+                        education,
+                        occupation,
+                        income,
+                        language,
+                        manglik,
+                    },
+
+                }
+            },
+            { new: true } // for returns updated document
+        )
+
+        //validations
+        if (!updatePreference) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+
+           
+
+        }
+
+         //send respons
+
+        res.status(200).json({
+            success: true,
+            message: "Partner preferences updated successfully",
+            data: updatePreference.partnerPreferences,
+        });
+
+
+
+    } catch (error) {
+        console.error("Error updating partner preferences:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+
+        });
+    }
+
+}
+
+//send Follow Request
+export const sendFollowRequest = async (req, res) => {
+  try {
+    const userOneId = req.user?._id; // requester
+    const userTwoId = req.params.id; // target user id
+
+    if (!userOneId || !userTwoId) {
+      return res.status(400).json({ success: false, message: 'Invalid request' });
+    }
+
+    // console.log('Requester without using toString():', userOneId);
+    // console.log('Target User with toString():', userTwoId.toString());
+
+
+    // Prevent self-following 
+    if (userOneId.toString() === userTwoId.toString()) {
+      return res.status(400).json({ success: false, message: "You can't follow yourself" });
+    }
+
+
+    /** Check if target user exists in easy words we can say userTwo exists or not if not then return error, 
+     * means this type of user is not present in db/ 
+     * not registered that's why we anaable to send follow request 
+     * */
+    const targetUser = await User.findById(userTwoId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if already following or request sent
+    if (targetUser.followers.includes(userOneId)) {
+      return res.status(400).json({ success: false, message: 'Already following this user' });
+    }
+
+    if (targetUser.followRequests.includes(userOneId)) {
+      return res.status(400).json({ success: false, message: 'Follow request already sent' });
+    }
+
+    await User.findByIdAndUpdate(
+      userTwoId,
+      { $addToSet: { followRequests: userOneId } },
+      { new: true }
+    );
+
+    await User.findByIdAndUpdate(
+      userOneId,
+      { $addToSet: { sentRequests: userTwoId } },
+      { new: true }
+    );
+
+    return res.status(200).json({ success: true, message: 'Follow request sent successfully' });
+  } catch (error) {
+    console.error('Error in sendFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+  
+//accept Follow Request
+export const acceptFollowRequest = async (req, res) => {
+  try {
+    const receiverId = req.user._id;        // me (receiver)
+    const senderId = req.params.id;         // sender
+
+    console.log('Receiver:', receiverId);
+    console.log('Sender:', senderId);
+
+    const receiver = await User.findById(receiverId);
+    if (!receiver) {
+      return res.status(404).json({ success: false, message: 'Receiver not found' });
+    }
+
+    // Check if request exists
+    if (!receiver.followRequests.includes(senderId)) {
+      return res.status(400).json({ success: false, message: 'No follow request from this user' });
+    }
+
+    // Update both users
+    await User.findByIdAndUpdate(receiverId, {
+      $pull: { followRequests: senderId },
+      $addToSet: { followers: senderId },
+    });
+
+    await User.findByIdAndUpdate(senderId, {
+      $pull: { sentRequests: receiverId },
+      $addToSet: { followings: receiverId },
+    });
+
+    return res.status(200).json({ success: true, message: 'Follow request accepted' });
+  } catch (error) {
+    console.error('Error in acceptFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+//reject Follow Request
+export const rejectFollowRequest = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id; // me (the receiver)
+    const targetUserId = req.params.id; // sender of the request
+
+    console.log('Receiver:', loggedInUserId);
+    console.log('Sender:', targetUserId);
+
+    // validate target user existence
+    const targetUser = await User.findOne({ _id: targetUserId });
+
+
+    const user = await User.findOne({ _id: targetUserId});
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Check if request exists
+    if (!user.sentRequests.includes(loggedInUserId)) {
+      return res.status(400).json({ success: false, message: 'No follow request from this user' });
+    }
+
+    // Remove request from both users
+    await User.findOneAndUpdate(
+      { _id: loggedInUserId },
+      { $pull: { followRequests: targetUserId } }
+    );
+
+    await User.findOneAndUpdate(
+      { _id: targetUserId },
+      { $pull: { sentRequests: loggedInUserId } }
+    );
+
+    return res.status(200).json({ success: true, message: 'Follow request rejected' });
+  } catch (error) {
+    console.error('Error in rejectFollowRequest:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+//Cancel Follow Request
+export const cancelSendRequest = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id; // me (the requester sender )
+    const targetUserId = req.params.id; // target user
+    console.log('Requester:', loggedInUserId);
+    console.log('Target User:', targetUserId);
+
+    // Check if target user exists
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // Check if already sent request
+    if (!targetUser.sentRequests.includes(loggedInUserId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'No follow request sent to this user'
+      })
+    }
+
+    // Remove request from both users
+    await User.findByIdAndUpdate(
+      targetUserId,
+      { $pull: {sentRequests: loggedInUserId } } // remove from sentRequests of target user
+    );
+
+    await User.findByIdAndUpdate(
+      loggedInUserId,
+      { $pull: { followRequests: targetUserId } } // remove from followRequests of logged-in user
+    )
+
+    //send response
+    return res.status(200).json({
+      success: true,
+      message: 'Follow request cancelled successfully'
+    })
+
+  } catch (error) {
+    res.status(500).json({
+        success: false,
+        error: error.message,
+    })
+  }
+}
+
+// unfollow user
+export const unfollowRequest = async (req, res) => {
+  try {
+
+    // Get logged-in user and target user IDs
+    const loggedInUserId = req.user._id; // me (the follower)
+    const targetUserId = req.params.id; // target user
+
+    console.log('loggedInUser', loggedInUserId)
+    console.log('targetUser', targetUserId)
+
+    // Check if target user exists in the db
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // Check if already following or not
+    if (!targetUser.followers.includes(loggedInUserId)) {
+      return res.status (400).json({
+        success: false,
+        message: 'User not in your follower List'
+      })
+    }else{
+      // Remove follower and following relationship
+      await User.findByIdAndUpdate(
+        targetUserId,
+        { $pull: { followers: loggedInUserId } } // remove from followers of target user
+      );
+    }
+
+    // Remove following relationship from logged-in user
+    await User.findByIdAndUpdate(
+      loggedInUserId,
+      { $pull: { following: targetUserId } } // remove from following of logged-in user
+    );
+    //send response
+    return res.status(200).json({
+      success: true,
+      message: 'Unfollowed user successfully'
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    })
+  }
+}
+
+
+//Block User
+export const blockUserRequest = async (req, res) => {
+    
+  try {
+    const loggedInUserId = req.user._id; // me (the blocker)
+    const targetUserId = req.params.id; // target user
+
+    console.log('LoggedInUserId', loggedInUserId);
+    console.log('targetUserId', targetUserId)
+
+    // Check if target user exists
+    const user = await User.findById(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // check user already in follower list or not
+    if (!user.followings.includes(loggedInUserId)) {
+      res.status(404).json({
+        success: false,
+        message: 'user not in your follower list'
+      })
+    }else{
+      await User.findByIdAndUpdate(
+        loggedInUserId,
+        {$pull: {followers: targetUserId}}
+      )
+
+      await User.findByIdAndUpdate(
+        targetUserId,
+        {$pull: {followings: loggedInUserId}}
+      )
+
+      // add to block list
+      await User.findByIdAndUpdate(
+        loggedInUserId,
+        {$addToSet: {blockedUsers: targetUserId}}
+      )
+
+      return res.status(200).json({
+        success: true,
+        message: 'User blocked successfully'
+      })
+    }
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    })
+  }
+}
+
+
+// Unblock User
+export const unblockUserRequest = async (req, res) => {};
+
+
+// profile view history
+export const profileViewHistory = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id; // me (the viewer)
+    const targetUserId = req.params.id; // target user  
+
+    // Check if target user exists
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+
+    // Add to profile view history
+    await User.findByIdAndUpdate(
+      loggedInUserId,
+      { $addToSet: { profileViewHistory: targetUserId } }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile view recorded successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    })
+  }
+};
+
+//---------------------------------- End of Controllers ----------------------------------//
+
+
+
+
+
 
 
 
@@ -970,4 +1176,4 @@ const getMatches = async (req, res) => {
 
 
 // Export all controllers
-export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, cancelSendRequest, unfollowRequest, getUserProfile, getMatches, updateUser };
+//export { userRegister, getUsers, loginUser, createProfile, generateOtp, receivedOtp, partnerPreferences, sendFollowRequest, acceptFollowRequest, rejectFollowRequest, cancelSendRequest, unfollowRequest, getUserProfile, getMatches, updateUser };

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { genderType, profileType } from "../utils/constants.js";
+import { genderType, profileType, roleTypes  } from "../utils/constants.js";
 
 const userSchema = new mongoose.Schema({
   // Basic Profile Info
@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+  },
+  roleType: {
+    type: String,
+    enum: [roleTypes.user, roleTypes.admin],
+    default: roleTypes.user,
   },
 //   username: {
 //   type: String,
@@ -133,6 +138,18 @@ const userSchema = new mongoose.Schema({
     default: [],
   },
   sentRequests: {
+    type: [String],
+    default: [],
+  },
+  blockedUsers: {
+    type: [String],
+    default: [],
+  },
+  is_subscribed: {
+    type: Boolean,
+    default: false,
+  },
+  profileViewHistory: {
     type: [String],
     default: [],
   },

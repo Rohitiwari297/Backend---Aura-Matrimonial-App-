@@ -5,6 +5,7 @@ import connectDB from './config/dbConnection.js'
 import path from 'path'
 
 import userRoutes from './routes/userRoutes.js'
+import subscriptionPlanRoutes from './routes/subscriptionPlanRoute.js'
 //create instance 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/ping', (req, res)=> {
 
 //create route
 app.use('/users', userRoutes )
+app.use('/subscriptionPlans', subscriptionPlanRoutes )
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
