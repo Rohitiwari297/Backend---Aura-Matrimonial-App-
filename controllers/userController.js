@@ -111,88 +111,6 @@ export const userRegister = async (req, res) => {
   }
 };
 
-// Edit user details
-export const editUser = async (req, res) => {
-  try {
-    const userId = req.user?._id;
-    const {
-      profileType,
-      fullName,
-      gender,
-      age,
-      height,
-      dateOfBirth,
-      email,
-      phone,
-      religion,
-      caste,
-      subcaste,
-      manglik,
-      education,
-      annualIncome,
-      occupation,
-      location,
-      workLocation,
-      employedIn,
-      maritalStatus,
-      horoscope,
-      familyDetails,
-    } = req.body;
-
-    // Validate user ID
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: User not found in token" });
-    }
-
-    // Find user by ID
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Update user details
-    user.profileType = profileType || user.profileType;
-    user.fullName = fullName || user.fullName;
-    user.gender = gender || user.gender;
-    user.age = age || user.age;
-    user.height = height || user.height;
-    user.dateOfBirth = dateOfBirth || user.dateOfBirth;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
-    user.religion = religion || user.religion;
-    user.caste = caste || user.caste;
-    user.subcaste = subcaste || user.subcaste;
-    user.manglik = manglik || user.manglik;
-    user.education = education || user.education;
-    user.annualIncome = annualIncome || user.annualIncome;
-    user.occupation = occupation || user.occupation;
-    user.location = location || user.location;
-    user.workLocation = workLocation || user.workLocation;
-    user.employedIn = employedIn || user.employedIn;
-    user.maritalStatus = maritalStatus || user.maritalStatus;
-    user.horoscope = horoscope || user.horoscope;
-    user.familyDetails = familyDetails || user.familyDetails;
-
-    // Save updated user
-    await user.save();
-
-    res.status(200).json({
-      message: "User details updated successfully",
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message,
-    });
-  }
-};
-
 // Get all users 
 export const getUsers = async (req, res) => {
     console.log('hello')
@@ -244,7 +162,7 @@ export const loginUser = async (req, res) => {
             const token = jwt.sign(
                 { email, id: user._id },
                 process.env.SECRET_KEY,
-                { expiresIn: process.env.EXPIRED_ID }
+                // { expiresIn: process.env.EXPIRED_ID } //only user for web not for mobile app
             );
 
             res.status(200).json({
@@ -322,32 +240,7 @@ export const updateUser = async (req, res) => {
       } = req.body;
 
       //  validations for required fields
-      if (
-        !profileType ||
-        !fullName ||
-        !gender ||
-        !age ||
-        !height ||
-        !dateOfBirth ||
-        !religion ||
-        !caste ||
-        !subcaste ||
-        !manglik ||
-        !education ||
-        !annualIncome ||
-        !occupation ||
-        !location ||
-        !workLocation ||
-        !employedIn ||
-        !maritalStatus ||
-        !horoscope ||
-        !familyDetails
-      ) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "All required fields must be filled" 
-        });
-      }
+      
       
       // Find user by ID and update details
       const updatedUser = await User.findByIdAndUpdate(
@@ -492,9 +385,7 @@ export const getMatches = async (req, res) => {
         query._id = { $ne: userId };
     
         //Find matches
-        const matches = await User.find(query).select(
-          "fullName username gender dateOfBirth religion caste education occupation location profilePhotos about"
-        );
+        const matches = await User.find(query).select("-password");
     
         if (matches.length === 0) {
           return res.status(200).json({
@@ -503,6 +394,8 @@ export const getMatches = async (req, res) => {
             matches: [],
           });
         }
+
+        console.log('matches Lists :', matches)
     
         //send response
         res.status(200).json({
@@ -510,6 +403,7 @@ export const getMatches = async (req, res) => {
           message: "Matched profiles fetched successfully",
           totalMatches: matches.length,
           matches,
+          
         });
     } catch (error) {
         res.status(500).json({

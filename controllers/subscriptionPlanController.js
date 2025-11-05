@@ -6,10 +6,10 @@ export const createSubscriptionPlan = async (req, res) => {
 
     console.log("Request Body:", req.body);
     // Extract plan details from request body
-    const { name, price, trialPeriodDays, type, amountPaid, maxFollowRequests } = req.body;
+    const { name, price,validity_days, trialPeriodDays, type, amountPaid, maxFollowRequests } = req.body;
 
     // Validate required fields
-    if (!name || !price || !amountPaid || maxFollowRequests === undefined || type === undefined) {
+    if (!name || !validity_days || !price || !amountPaid || maxFollowRequests === undefined || type === undefined) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"
@@ -31,6 +31,7 @@ export const createSubscriptionPlan = async (req, res) => {
       price,
       trialPeriodDays,
       type,
+      validity_days,
       amountPaid,
       maxFollowRequests
     });

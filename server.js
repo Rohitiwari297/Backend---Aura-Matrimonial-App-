@@ -6,6 +6,7 @@ import path from 'path'
 
 import userRoutes from './routes/userRoutes.js'
 import subscriptionPlanRoutes from './routes/subscriptionPlanRoute.js'
+import purchasePlanRoute from './routes/purchasePlanRoute.js'
 //create instance 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/ping', (req, res)=> {
 //create route
 app.use('/users', userRoutes )
 app.use('/subscriptionPlans', subscriptionPlanRoutes )
+app.use('/subcription', purchasePlanRoute)
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

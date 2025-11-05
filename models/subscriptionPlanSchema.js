@@ -9,21 +9,14 @@ const subscriptionPlanSchema = new mongoose.Schema({
     type: Number, 
     required: true 
   },
-  trialPeriodDays: { 
-    type: Number, 
-    default: 0 
-  },
-  amountPaid: { 
-    type: Number,  
-  },
-  type: { 
-    type: Number, 
-    required: true 
-  },
   maxFollowRequests: { 
     type: Number, 
     required: true, 
     default: 10 
+  },
+  validity_days: {
+    type: Number,
+    required: true
   }
 }, { timestamps: true });
 
