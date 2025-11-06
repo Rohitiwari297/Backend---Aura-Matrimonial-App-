@@ -14,10 +14,11 @@ import {
   receivedOtp,
   updateUser,
   unfollowRequest,
+  updateProfile,
+  updatePartnerPreferences,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
-import { validateUserRegistration } from '../middlewares/auth_register.js';
 import multer from '../utils/multer.js';
 
 const route = express.Router();
@@ -33,10 +34,12 @@ route.post('/receivedOtp', receivedOtp);
 // Profile Management
 route.post("/profile-setup", authMiddleware, multer.array("image", 4), createProfile);
 route.get('/profile', authMiddleware, getUserProfile);
+route.put('/profile/update', authMiddleware, multer.array("image", 4), updateProfile)
 
 // Partner Preferences
 route.post('/user-preference', authMiddleware, partnerPreferences);
 route.get('/preference-matches', authMiddleware, getMatches);
+route.put('/user-preference', authMiddleware, updatePartnerPreferences)
 
 // Follow System
 route.post('/follow/:id', authMiddleware, sendFollowRequest);

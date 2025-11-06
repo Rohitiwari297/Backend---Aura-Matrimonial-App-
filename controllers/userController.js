@@ -2,6 +2,10 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
+//update profile
+import fs from "fs";
+import path from "path";
+
 //DB
 import User from '../models/userSchema.js';
 
@@ -228,7 +232,8 @@ export const updateUser = async (req, res) => {
         caste,
         subcaste,
         manglik,
-        education,
+        education,       
+        otherQualification,
         annualIncome,
         occupation,
         location,
@@ -257,6 +262,7 @@ export const updateUser = async (req, res) => {
           subcaste,
           manglik,
           education,
+          otherQualification,
           annualIncome,
           occupation,
           location,
@@ -292,6 +298,7 @@ export const updateUser = async (req, res) => {
           subcaste,
           manglik,
           education,
+          otherQualification,
           annualIncome,
           occupation,
           location,
@@ -543,7 +550,10 @@ export const createProfile = async (req, res) => {
 
     // Check for uploaded files
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Image file is required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Image file is required" 
+      });
     }
 
     // Fetch current user to check how many images already exist
@@ -583,14 +593,125 @@ export const createProfile = async (req, res) => {
     }
 
     res.status(200).json({
+      success: true,
       message: "Profile setup completed successfully",
       user: updatedProfile,
     });
   } catch (error) {
     console.error("Error in profileSetup:", error.message);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error", 
+      error: error.message });
   }
 };
+
+//update profile
+export const updateProfile = async (req, res) => {
+  console.log("Received files:", req.files);
+
+  try {
+    const { about } = req.body;
+    const userId = req.user?._id;
+
+    // Expecting image IDs in an array (from frontend)
+    // Example: req.body.imageIds = ["id1", "id2", "id3", "id4"]
+    const imageIds = req.body.imageIds
+      ? Array.isArray(req.body.imageIds)
+        ? req.body.imageIds
+        : JSON.parse(req.body.imageIds)
+      : [];
+
+    console.log("About:", about);
+    console.log("User ID:", userId);
+    console.log("Image IDs:", imageIds);
+
+    // ===== VALIDATION =====
+    if (!userId)
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found in token",
+      });
+
+    if (!about)
+      return res.status(400).json({
+        success: false,
+        message: "About field is required",
+      });
+
+    if (!req.files || req.files.length === 0)
+      return res.status(400).json({
+        success: false,
+        message: "At least one image file is required",
+      });
+
+    // ===== FETCH USER =====
+    const user = await User.findById(userId);
+    if (!user)
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+
+    // ===== REPLACE IMAGES =====
+    for (let i = 0; i < req.files.length; i++) {
+      const newFile = req.files[i];
+      const newImageUrl = `${req.protocol}://${req.get("host")}/uploads/${newFile.filename}`;
+
+      // Find matching image index in profilePhotos array
+      const imageId = imageIds[i];
+      const imageIndex = user.profilePhotos.findIndex(
+        (photo) => photo._id.toString() === imageId
+      );
+
+      // If the image exists — replace it, else append as new
+      if (imageIndex !== -1) {
+        // Delete old image from server
+        try {
+          const oldImagePath = path.join(
+            "uploads",
+            path.basename(user.profilePhotos[imageIndex].url)
+          );
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+            console.log("Deleted old image:", oldImagePath);
+          }
+        } catch (err) {
+          console.warn("Failed to delete old image:", err.message);
+        }
+
+        // Replace image URL
+        user.profilePhotos[imageIndex].url = newImageUrl;
+      } else {
+        // If no old image ID found, add new
+        user.profilePhotos.push({ url: newImageUrl });
+      }
+    }
+
+    // ===== UPDATE ABOUT FIELD =====
+    user.about = about;
+
+    // ===== SAVE CHANGES =====
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        about: updatedUser.about,
+        images: updatedUser.profilePhotos,
+      },
+    });
+  } catch (error) {
+    console.error("Error in updateProfile:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error in update profile",
+      error: error.message,
+    });
+  }
+};
+
 
 // get userProfile
 export const getUserProfile = async (req, res) => {
@@ -635,6 +756,7 @@ export const getUserProfile = async (req, res) => {
 
 }
 
+// create partner preference
 export const partnerPreferences = async (req, res) => {
     const { age, heightRange, state, education, income, cast, language, manglik, city, occupation, religion } = req.body;
 
@@ -723,6 +845,83 @@ export const partnerPreferences = async (req, res) => {
     }
 
 }
+
+// update partner preference
+export const updatePartnerPreferences = async (req, res) => {
+  console.log("request body:", req.body);
+
+  try {
+    const {
+      age,
+      heightRange,
+      state,
+      education,
+      income,
+      caste,
+      language,
+      manglik,
+      city,
+      occupation,
+      religion,
+    } = req.body;
+
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: User not found in token",
+      });
+    }
+
+    // Update user partner preferences
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          partnerPreferences: {
+            ageRange: {
+              min: age?.min || age,
+              max: age?.max || age,
+            },
+            heightRange: {
+              min: heightRange?.min || heightRange,
+              max: heightRange?.max || heightRange,
+            },
+            religion,
+            caste,
+            location: { state, city },
+            education,
+            occupation,
+            income,
+            language,
+            manglik,
+          },
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Partner preferences updated successfully",
+      data: updatedUser.partnerPreferences,
+    });
+  } catch (error) {
+    console.error("Error updating partner preferences:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating partner preferences",
+      error: error.message,
+    });
+  }
+};
 
 //send Follow Request
 export const sendFollowRequest = async (req, res) => {
