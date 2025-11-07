@@ -65,7 +65,39 @@ export const createPurchasePlan = async (req, res) => {
 };
 
 // get purchased plan
-export const getSubscrioptionDetails =  async (req, res) => {
+export const getSubscriptionDetails = async (req, res) => {
+    try {
 
-    // 
-}
+        //  get user ID
+        const userId = req.user._id;
+
+        //validation for  userId
+        if (!userId) {
+            res.status(404).json({
+                success: false,
+                message: 'Unauthorised: userId not present in token'
+            })
+        }
+
+        // find details in db as per userId
+        const subscriptionDetails = await SubscriptionDetails.findOne({ user_id: userId });
+        if (!subscriptionDetails) {
+            res.status(404).json({
+                success: false,
+                message: 'Subscription details not found'
+            });
+        } else {
+            res.status(200).json({
+                success: true,
+                message: 'Subscription details fetched successfully',
+                data: subscriptionDetails
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch subscription details",
+            error: error.message
+        });
+    }
+};
