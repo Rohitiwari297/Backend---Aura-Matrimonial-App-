@@ -14,6 +14,14 @@ const messageSchema = new mongoose.Schema({
   message: {
     type: String,
     required: true,
+    maxLength: 1000,
+    trim: true,
+    validation: [
+      {
+        validator: (value) => value.length > 0,
+        message: "message can't be empty"
+      }
+    ]
   },
   timestamp: {
     type: Date,

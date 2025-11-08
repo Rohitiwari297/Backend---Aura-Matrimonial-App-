@@ -608,98 +608,100 @@ export const createProfile = async (req, res) => {
 
 //update profile
 export const updateProfile = async (req, res) => {
-  console.log("Received files:", req.files);
-
   try {
     const { about } = req.body;
     const userId = req.user?._id;
+    const imageId = req.params.id; // _id of image in profilePhotos array
 
-    // Expecting image IDs in an array (from frontend)
-    // Example: req.body.imageIds = ["id1", "id2", "id3", "id4"]
-    const imageIds = req.body.imageIds
-      ? Array.isArray(req.body.imageIds)
-        ? req.body.imageIds
-        : JSON.parse(req.body.imageIds)
-      : [];
-
-    console.log("About:", about);
-    console.log("User ID:", userId);
-    console.log("Image IDs:", imageIds);
+    console.log("about:", about);
+    console.log("requesting userId:", userId);
+    console.log("requesting imageId:", imageId);
+    console.log("uploaded files:", req.files);
 
     // ===== VALIDATION =====
-    if (!userId)
+    if (!userId) {
       return res.status(401).json({
         success: false,
         message: "Unauthorized: User not found in token",
       });
+    }
 
-    if (!about)
-      return res.status(400).json({
-        success: false,
-        message: "About field is required",
-      });
-
-    if (!req.files || req.files.length === 0)
-      return res.status(400).json({
-        success: false,
-        message: "At least one image file is required",
-      });
-
-    // ===== FETCH USER =====
     const user = await User.findById(userId);
-    if (!user)
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
+    }
 
-    // ===== REPLACE IMAGES =====
-    for (let i = 0; i < req.files.length; i++) {
-      const newFile = req.files[i];
-      const newImageUrl = `${req.protocol}://${req.get("host")}/uploads/${newFile.filename}`;
+    // ===== UPDATE ABOUT =====
+    if (about) {
+      user.about = about;
+    }
 
-      // Find matching image index in profilePhotos array
-      const imageId = imageIds[i];
+    // ===== UPDATE IMAGE (if provided) =====
+    if (req.files && req.files.length > 0) {
+      if (!imageId) {
+        return res.status(400).json({
+          success: false,
+          message: "Image ID is required to replace an existing photo",
+        });
+      }
+
       const imageIndex = user.profilePhotos.findIndex(
         (photo) => photo._id.toString() === imageId
       );
 
-      // If the image exists — replace it, else append as new
-      if (imageIndex !== -1) {
-        // Delete old image from server
-        try {
-          const oldImagePath = path.join(
-            "uploads",
-            path.basename(user.profilePhotos[imageIndex].url)
-          );
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-            console.log("Deleted old image:", oldImagePath);
-          }
-        } catch (err) {
-          console.warn("Failed to delete old image:", err.message);
-        }
-
-        // Replace image URL
-        user.profilePhotos[imageIndex].url = newImageUrl;
-      } else {
-        // If no old image ID found, add new
-        user.profilePhotos.push({ url: newImageUrl });
+      if (imageIndex === -1) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid image ID. Image not found in user's profile.",
+        });
       }
+
+      // Build new image URL
+      const newImageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.files[0].filename}`;
+
+      // Delete old image (optional)
+      try {
+        const oldImagePath = path.join(
+          "uploads",
+          path.basename(user.profilePhotos[imageIndex].url)
+        );
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log("Old image deleted:", oldImagePath);
+        }
+      } catch (err) {
+        console.warn("Failed to delete old image file:", err.message);
+      }
+
+      // Replace image URL
+      user.profilePhotos[imageIndex].url = newImageUrl;
     }
 
-    // ===== UPDATE ABOUT FIELD =====
-    user.about = about;
+    // ===== IF NOTHING TO UPDATE =====
+    if (!about && (!req.files || req.files.length === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "No data provided to update",
+      });
+    }
 
     // ===== SAVE CHANGES =====
     const updatedUser = await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Profile updated successfully",
+      message:
+        about && req.files?.length
+          ? "Profile image and about updated successfully"
+          : about
+          ? "About updated successfully"
+          : "Profile image updated successfully",
       user: {
         about: updatedUser.about,
-        images: updatedUser.profilePhotos,
+        profilePhotos: updatedUser.profilePhotos,
       },
     });
   } catch (error) {
@@ -711,8 +713,7 @@ export const updateProfile = async (req, res) => {
     });
   }
 };
-
-
+ 
 // get userProfile
 export const getUserProfile = async (req, res) => {
 
