@@ -7,8 +7,12 @@ import path from 'path'
 import userRoutes from './routes/userRoutes.js'
 import subscriptionPlanRoutes from './routes/subscriptionPlanRoute.js'
 import purchasePlanRoute from './routes/purchasePlanRoute.js'
+import messageRoute from './routes/messageRoute.js'
+import { app, server } from './socketIO/socketServer.js'
+
+
 //create instance 
-const app = express();
+// const app = express();  // now we are user socke app 
 
 //dotenv
 env.config()
@@ -33,11 +37,12 @@ app.use('/ping', (req, res)=> {
 app.use('/users', userRoutes )
 app.use('/subscriptionPlans', subscriptionPlanRoutes )
 app.use('/subcription', purchasePlanRoute)
+app.use('/message', messageRoute)
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 //starting the server
-app.listen(PORT, ()=> {
+server.listen(PORT, ()=> {
     console.log(`sever is up on ${PORT}`)
 })
