@@ -6,10 +6,10 @@ export const createSubscriptionPlan = async (req, res) => {
 
     console.log("Request Body:", req.body);
     // Extract plan details from request body
-    const { name, price,validity_days, trialPeriodDays, type, amountPaid, maxFollowRequests } = req.body;
+    const { name, price,validity_days, trialPeriodDays, type, amountPaid, maxMessageRequests } = req.body;
 
     // Validate required fields
-    if (!name || !validity_days || !price || !amountPaid || maxFollowRequests === undefined || type === undefined) {
+    if (!name || !validity_days || !price || !amountPaid || maxMessageRequests === undefined || type === undefined) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"
@@ -33,7 +33,7 @@ export const createSubscriptionPlan = async (req, res) => {
       type,
       validity_days,
       amountPaid,
-      maxFollowRequests
+      maxMessageRequests
     });
 
     await newPlan.save();
@@ -59,10 +59,10 @@ export const editSubscriptionPlan = async (req, res) => {
   // Implementation for editing a subscription plan
 
     const planId = req.params.id;
-    const { name, price, trialPeriodDays, type, amountPaid, maxFollowRequests } = req.body;
+    const { name, price, trialPeriodDays, type, amountPaid, maxMessageRequests } = req.body;
     
     //validation
-    if (!name || !price || !amountPaid || maxFollowRequests === undefined || type === undefined) {
+    if (!name || !price || !amountPaid || maxMessageRequests === undefined || type === undefined) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"
@@ -87,7 +87,7 @@ export const editSubscriptionPlan = async (req, res) => {
     subscription.trialPeriodDays = trialPeriodDays;
     subscription.type = type;
     subscription.amountPaid = amountPaid;
-    subscription.maxFollowRequests = maxFollowRequests;
+    subscription.maxMessageRequests = maxMessageRequests;
 
     // save the updates
     await subscription.save();

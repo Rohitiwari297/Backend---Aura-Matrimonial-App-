@@ -2,70 +2,122 @@
 import Conversation from '../models/conversationSchema.js'
 import Message from '../models/messageSchema.js';
 
+import { io } from "../socketIO/socketServer.js"; // import io instance
+
 // Controllers
 
-// send message
+// send message without socket.io
+// export const sendMessage = async (req, res) => {
+//     // 
+//     try {
+//         const {message} = req.body;
+//         const receiverId = req.params.id;
+//         const loggedInuserId = req.user._id;
+
+//         //console 
+//         console.log('message :', message)
+//         console.log('receiver Id :', receiverId)
+//         console.log('loggedIn user Id :', loggedInuserId)
+
+//         // find in coversation of user Id's of both user
+//         let conversation = await Conversation.findOne({
+//             // now we have to find in which attribute = participant
+//             participents: { $all: [receiverId, loggedInuserId]},
+//             messages: []  // initialize messages array if your schema doesn’t default it
+//         })
+
+//         // if in conversation both Id's are not exists the save the Id's in conversation
+//         if ( !conversation ) {
+//             await Conversation.create({      //here we create the initiate the conversation but not save here
+//                 participents: [receiverId, loggedInuserId]
+//             })
+//         }
+
+//         //now save the message which is send the sender
+//         const newMessage = new Message({
+//             senderId: loggedInuserId,
+//             receiverId,
+//             message
+//         })
+
+//         if (newMessage){
+//             //if mssg then save the mssg
+//             //await newMessage.save()   //we have to save parallelly with await conversation.save()
+//             //after that push the mssgs in conversation's messages in conversation Schema
+//             conversation.messages.push(newMessage._id)
+//             //now here save the conversation
+//             //await conversation.save()  //we have to save parallelly with "await conversation.save()"
+            
+//             //send the success response to the user
+            
+
+//             // use promises for the saving messages and conversations parallelly
+//             await Promise.all([newMessage.save(), conversation.save()])
+//             res.status(201).json({
+//                 success: true,
+//                 message: 'message send successfully',
+//                 data: newMessage
+//             })
+
+//         }
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false,
+//             message: 'Server error while sending the message',
+//             error: error.message
+//         })
+//     }
+// }
+
+
+// send message with socket.io
 export const sendMessage = async (req, res) => {
-    // 
-    try {
-        const {message} = req.body;
-        const receiverId = req.params.id;
-        const loggedInuserId = req.user._id;
+  try {
+    const { message } = req.body;
+    const receiverId = req.params.id;
+    const loggedInuserId = req.user._id;
 
-        //console 
-        console.log('message :', message)
-        console.log('receiver Id :', receiverId)
-        console.log('loggedIn user Id :', loggedInuserId)
+    console.log('requesting messagge:', message)
 
-        // find in coversation of user Id's of both user
-        let conversation = await Conversation.findOne({
-            // now we have to find in which attribute = participant
-            participents: { $all: [receiverId, loggedInuserId]},
-            messages: []  // initialize messages array if your schema doesn’t default it
-        })
+    let conversation = await Conversation.findOne({
+      participents: { $all: [receiverId, loggedInuserId] },
+    });
 
-        // if in conversation both Id's are not exists the save the Id's in conversation
-        if ( !conversation ) {
-            await Conversation.create({      //here we create the initiate the conversation but not save here
-                participents: [receiverId, loggedInuserId]
-            })
-        }
-
-        //now save the message which is send the sender
-        const newMessage = new Message({
-            senderId: loggedInuserId,
-            receiverId,
-            message
-        })
-
-        if (newMessage){
-            //if mssg then save the mssg
-            //await newMessage.save()   //we have to save parallelly with await conversation.save()
-            //after that push the mssgs in conversation's messages in conversation Schema
-            conversation.messages.push(newMessage._id)
-            //now here save the conversation
-            //await conversation.save()  //we have to save parallelly with "await conversation.save()"
-            
-            //send the success response to the user
-            
-
-            // use promises for the saving messages and conversations parallelly
-            await Promise.all([newMessage.save(), conversation.save()])
-            res.status(201).json({
-                success: true,
-                message: 'message send successfully',
-                data: newMessage
-            })
-
-        }
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error while sending the message',
-            error: error.message
-        })
+    if (!conversation) {
+      conversation = await Conversation.create({
+        participents: [receiverId, loggedInuserId],
+      });
     }
-}
+
+    const newMessage = new Message({
+      senderId: loggedInuserId,
+      receiverId,
+      message,
+    });
+
+    await Promise.all([newMessage.save(), conversation.save()]);
+
+    // Emit a real-time event to the receiver
+    io.emit("newMessage", {
+      senderId: loggedInuserId,
+      receiverId,
+      message,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Message sent successfully",
+      data: newMessage,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error while sending the message",
+      error: error.message,
+    });
+  }
+};
+
 
 // get message by Id
 export const getMessage = async (req, res) => {

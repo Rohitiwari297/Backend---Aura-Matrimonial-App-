@@ -38,7 +38,7 @@ export const createPurchasePlan = async (req, res) => {
             subscription_plan_id: planId,
             planName: plan.planName,
             amount: plan.price,
-            maxFollowRequests: plan.maxFollowRequests,
+            maxMessageRequests: plan.maxMessageRequests,
             validity_days: plan.validity_days,
             startDate: new Date(),
             expiryDate: new Date(Date.now() + plan.validity_days * 24 * 60 * 60 * 1000) // calculating end date

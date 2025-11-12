@@ -9,7 +9,7 @@ const subscriptionPlanSchema = new mongoose.Schema({
     type: Number, 
     required: true 
   },
-  maxFollowRequests: { 
+  maxMessageRequests: {     //chenge mexFollowRequest -> maxMessageRequest
     type: Number, 
     required: true, 
     default: 10 
