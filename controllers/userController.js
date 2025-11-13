@@ -392,7 +392,13 @@ export const getMatches = async (req, res) => {
         query._id = { $ne: userId };
     
         //Find matches
-        const matches = await User.find(query).select("-password");
+        const matches = await User.find(query).select("-password -followers");
+        // we can also write
+        // const matches = await User.find(query).select({ password: 0, followers: 0 });
+
+       
+
+        if( isFollower)
     
         if (matches.length === 0) {
           return res.status(200).json({
