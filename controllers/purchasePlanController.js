@@ -51,6 +51,14 @@ export const createPurchasePlan = async (req, res) => {
             subscriptionDetails
         });
 
+        // //change status of is_subscribe
+        // if (user) {
+        //     await User.findOneAndUpdate(
+        //         { _id: user._id },
+        //         { $set: { is_subscribe: true } }
+        //     );
+        // }
+
 
         
     } catch (error) {

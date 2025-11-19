@@ -5,15 +5,11 @@ import {
   loginUser,
   createProfile,
   partnerPreferences,
-  sendFollowRequest,
-  acceptFollowRequest,
-  rejectFollowRequest,
   getUserProfile,
   getMatches,
   generateOtp,
   receivedOtp,
   updateUser,
-  unfollowRequest,
   updateProfile,
   updatePartnerPreferences,
 } from '../controllers/userController.js';
@@ -41,11 +37,6 @@ route.post('/user-preference', authMiddleware, partnerPreferences);
 route.get('/preference-matches', authMiddleware, getMatches);
 route.put('/user-preference', authMiddleware, updatePartnerPreferences)
 
-// Follow System
-route.post('/follow/:id', authMiddleware, sendFollowRequest);
-route.post('/unfollow/:id', authMiddleware, unfollowRequest);
-route.post('/follow/accept/:id', authMiddleware, acceptFollowRequest);
-route.post('/follow/reject/:id', authMiddleware, rejectFollowRequest);
 
 
 export default route;

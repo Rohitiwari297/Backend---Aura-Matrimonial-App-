@@ -9,7 +9,7 @@ export const createSubscriptionPlan = async (req, res) => {
     const { name, price,validity_days, trialPeriodDays, type, amountPaid, maxMessageRequests } = req.body;
 
     // Validate required fields
-    if (!name || !validity_days || !price || !amountPaid || maxMessageRequests === undefined || type === undefined) {
+    if (!name || !validity_days || !price || !maxMessageRequests === undefined) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"
@@ -62,7 +62,7 @@ export const editSubscriptionPlan = async (req, res) => {
     const { name, price, trialPeriodDays, type, amountPaid, maxMessageRequests } = req.body;
     
     //validation
-    if (!name || !price || !amountPaid || maxMessageRequests === undefined || type === undefined) {
+    if (!name || !price || maxMessageRequests === undefined ) {
       return res.status(400).json({
         success: false,
         message: "Please provide all required fields"

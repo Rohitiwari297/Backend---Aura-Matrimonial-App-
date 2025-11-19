@@ -8,6 +8,7 @@ import path from "path";
 
 //DB
 import User from '../models/userSchema.js';
+import SocialMedia from '../models/followRequestSchema.js';
 
 //controllers 
 
@@ -324,109 +325,150 @@ export const updateUser = async (req, res) => {
 
 ///Recommendations on behalf of partner preference
 export const getMatches = async (req, res) => {
+  try {
+    const userId = req.user._id;
 
-    try {
-        
-        const userId = req.user?._id;
-    
-        // validation
-        if(!userId){
-            res.status(401).json({
-                success: false,
-                message: 'Unauthorized: Please login first'
-            })    
-        }
-    
-        //after that fetch login user's data
-        const user = User.findById(userId).select("-password");
-        //validations
-        if(!user){
-            res.status(404).json({
-                success: false,
-                message: 'User not fount'
-            })
-        }
-    
-        // fetch partner preference of user
-        const pref = user.partnerPreferences || {} ;
-        //create query variable
-        const query = {};
-    
-        //apply query condition
-        //1. gender preference for male -> female & for Female -> male
-        if(user.gender === "Male"){
-            query.gender = "Female";
-        }else if(user.gender === "Female"){
-            query.gender = "Male";
-        }
-    
-        //2. Age range filter (convert to dateOfBirth)
-        if(pref.ageRange?.min && pref.ageRange?.max){
-            const currentYear = new Date().getFullYear();
-            query.dateOfBirth = {
-                $gte: new Date(currentYear - pref.ageRange.max, 0, 1),
-                $lte: new Date(currentYear - pref.ageRange.min, 11, 31)
-    
-            }
-        }
-    
-        //3. Religion
-        if (pref.religion) query.religion = pref.religion;
-    
-        //4. Caste
-        if (pref.caste) query.caste = pref.caste;
-    
-        //5. Location
-        if (pref.location?.state) query["location.state"] = pref.location.state;
-        if (pref.location?.city) query["location.city"] = pref.location.city;
-    
-        //6. Education & Occupation
-        if (pref.education) query.education = pref.education;
-        if (pref.occupation) query.occupation = pref.occupation;
-    
-        //7. Manglik & Language
-        if (pref.manglik) query.manglik = pref.manglik;
-        if (pref.language) query.language = pref.language;
-    
-        //Exclude self
-        query._id = { $ne: userId };
-    
-        //Find matches
-        const matches = await User.find(query).select("-password -followers");
-        // we can also write
-        // const matches = await User.find(query).select({ password: 0, followers: 0 });
-
-       
-
-        if( isFollower)
-    
-        if (matches.length === 0) {
-          return res.status(200).json({
-            success: true,
-            message: "No matches found based on your preferences",
-            matches: [],
-          });
-        }
-
-        console.log('matches Lists :', matches)
-    
-        //send response
-        res.status(200).json({
-          success: true,
-          message: "Matched profiles fetched successfully",
-          totalMatches: matches.length,
-          matches,
-          
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message,
-        })
+    const user = await User.findById(userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    // Fetch social data for exclusions
+    const social = await SocialMedia.findOne({ userId });
+    const excludedIds = [
+      ...(social?.followers || []),
+      ...(social?.followings || []),
+      userId,
+    ];
 
-}
+    const pref = user.partnerPreferences || {};
+
+    // 1. Required: Opposite gender filter
+    const genderFilter =
+      user.gender === "Male" ? "Female" : "Male";
+
+    let candidates = await User.find({
+      gender: genderFilter,
+      _id: { $nin: excludedIds },
+    }).select("-password");
+
+    if (!candidates.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No matches found",
+        matches: [],
+      });
+    }
+
+    // --------------------------------------------
+    // ⭐ PRIORITY SCORE SYSTEM
+    // --------------------------------------------
+    const weights = {
+      religion: 20,
+      caste: 15,
+      location: 15,
+      ageRange: 15,
+      education: 10,
+      occupation: 10,
+      income: 5,
+      language: 5,
+      manglik: 5,
+    };
+
+    function calculateScore(candidate) {
+      let score = 0;
+
+      // Religion
+      if (pref.religion && candidate.religion === pref.religion) {
+        score += weights.religion;
+      }
+
+      // Caste
+      if (pref.caste && candidate.caste === pref.caste) {
+        score += weights.caste;
+      }
+
+      // State/City
+      if (
+        pref.location?.state &&
+        candidate.location?.state === pref.location.state
+      ) {
+        score += weights.location;
+      }
+      if (
+        pref.location?.city &&
+        candidate.location?.city === pref.location.city
+      ) {
+        score += weights.location;
+      }
+
+      // Education
+      if (pref.education && candidate.education === pref.education) {
+        score += weights.education;
+      }
+
+      // Occupation
+      if (pref.occupation && candidate.occupation === pref.occupation) {
+        score += weights.occupation;
+      }
+
+      // Income
+      if (pref.income && candidate.income === pref.income) {
+        score += weights.income;
+      }
+
+      // Language
+      if (pref.language && candidate.language === pref.language) {
+        score += weights.language;
+      }
+
+      // Manglik
+      if (pref.manglik && candidate.manglik === pref.manglik) {
+        score += weights.manglik;
+      }
+
+      // Age range
+      if (pref.ageRange?.min && pref.ageRange?.max) {
+        const currentYear = new Date().getFullYear();
+        const candAge =
+          currentYear - new Date(candidate.dateOfBirth).getFullYear();
+
+        if (
+          candAge >= pref.ageRange.min &&
+          candAge <= pref.ageRange.max
+        ) {
+          score += weights.ageRange;
+        }
+      }
+
+      return score;
+    }
+
+    // Assign score to every candidate
+    candidates = candidates.map((c) => ({
+      ...c._doc,
+      matchScore: calculateScore(c),
+    }));
+
+    // Sort by score descending
+    candidates.sort((a, b) => b.matchScore - a.matchScore);
+
+    // If all users have score === 0 → they still show (gender-based)
+    const hasGoodMatches = candidates.some((c) => c.matchScore > 0);
+
+    return res.status(200).json({
+      success: true,
+      message: hasGoodMatches
+        ? "Matches sorted by best compatibility"
+        : "No strong matches found. Showing gender-based matches only.",
+      totalMatches: candidates.length,
+      matches: candidates,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 
 // Login user with mobile number otp
 export const generateOtp = async (req, res) => {
@@ -929,303 +971,6 @@ export const updatePartnerPreferences = async (req, res) => {
     });
   }
 };
-
-//send Follow Request
-export const sendFollowRequest = async (req, res) => {
-  try {
-    const userOneId = req.user?._id; // requester
-    const userTwoId = req.params.id; // target user id
-
-    if (!userOneId || !userTwoId) {
-      return res.status(400).json({ success: false, message: 'Invalid request' });
-    }
-
-    // console.log('Requester without using toString():', userOneId);
-    // console.log('Target User with toString():', userTwoId.toString());
-
-
-    // Prevent self-following 
-    if (userOneId.toString() === userTwoId.toString()) {
-      return res.status(400).json({ success: false, message: "You can't follow yourself" });
-    }
-
-
-    /** Check if target user exists in easy words we can say userTwo exists or not if not then return error, 
-     * means this type of user is not present in db/ 
-     * not registered that's why we anaable to send follow request 
-     * */
-    const targetUser = await User.findById(userTwoId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // Check if already following or request sent
-    if (targetUser.followers.includes(userOneId)) {
-      return res.status(400).json({ success: false, message: 'Already following this user' });
-    }
-
-    if (targetUser.followRequests.includes(userOneId)) {
-      return res.status(400).json({ success: false, message: 'Follow request already sent' });
-    }
-
-    await User.findByIdAndUpdate(
-      userTwoId,
-      { $addToSet: { followRequests: userOneId } },
-      { new: true }
-    );
-
-    await User.findByIdAndUpdate(
-      userOneId,
-      { $addToSet: { sentRequests: userTwoId } },
-      { new: true }
-    );
-
-    return res.status(200).json({ success: true, message: 'Follow request sent successfully' });
-  } catch (error) {
-    console.error('Error in sendFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-  
-//accept Follow Request
-export const acceptFollowRequest = async (req, res) => {
-  try {
-    const receiverId = req.user._id;        // me (receiver)
-    const senderId = req.params.id;         // sender
-
-    console.log('Receiver:', receiverId);
-    console.log('Sender:', senderId);
-
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      return res.status(404).json({ success: false, message: 'Receiver not found' });
-    }
-
-    // Check if request exists
-    if (!receiver.followRequests.includes(senderId)) {
-      return res.status(400).json({ success: false, message: 'No follow request from this user' });
-    }
-
-    // Update both users
-    await User.findByIdAndUpdate(receiverId, {
-      $pull: { followRequests: senderId },
-      $addToSet: { followers: senderId },
-    });
-
-    await User.findByIdAndUpdate(senderId, {
-      $pull: { sentRequests: receiverId },
-      $addToSet: { followings: receiverId },
-    });
-
-    return res.status(200).json({ success: true, message: 'Follow request accepted' });
-  } catch (error) {
-    console.error('Error in acceptFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-//reject Follow Request
-export const rejectFollowRequest = async (req, res) => {
-  try {
-    const loggedInUserId = req.user._id; // me (the receiver)
-    const targetUserId = req.params.id; // sender of the request
-
-    console.log('Receiver:', loggedInUserId);
-    console.log('Sender:', targetUserId);
-
-    // validate target user existence
-    const targetUser = await User.findOne({ _id: targetUserId });
-
-
-    const user = await User.findOne({ _id: targetUserId});
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    // Check if request exists
-    if (!user.sentRequests.includes(loggedInUserId)) {
-      return res.status(400).json({ success: false, message: 'No follow request from this user' });
-    }
-
-    // Remove request from both users
-    await User.findOneAndUpdate(
-      { _id: loggedInUserId },
-      { $pull: { followRequests: targetUserId } }
-    );
-
-    await User.findOneAndUpdate(
-      { _id: targetUserId },
-      { $pull: { sentRequests: loggedInUserId } }
-    );
-
-    return res.status(200).json({ success: true, message: 'Follow request rejected' });
-  } catch (error) {
-    console.error('Error in rejectFollowRequest:', error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};
-
-//Cancel Follow Request
-export const cancelSendRequest = async (req, res) => {
-  try {
-    const loggedInUserId = req.user._id; // me (the requester sender )
-    const targetUserId = req.params.id; // target user
-    console.log('Requester:', loggedInUserId);
-    console.log('Target User:', targetUserId);
-
-    // Check if target user exists
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    // Check if already sent request
-    if (!targetUser.sentRequests.includes(loggedInUserId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'No follow request sent to this user'
-      })
-    }
-
-    // Remove request from both users
-    await User.findByIdAndUpdate(
-      targetUserId,
-      { $pull: {sentRequests: loggedInUserId } } // remove from sentRequests of target user
-    );
-
-    await User.findByIdAndUpdate(
-      loggedInUserId,
-      { $pull: { followRequests: targetUserId } } // remove from followRequests of logged-in user
-    )
-
-    //send response
-    return res.status(200).json({
-      success: true,
-      message: 'Follow request cancelled successfully'
-    })
-
-  } catch (error) {
-    res.status(500).json({
-        success: false,
-        error: error.message,
-    })
-  }
-}
-
-// unfollow user
-export const unfollowRequest = async (req, res) => {
-  try {
-
-    // Get logged-in user and target user IDs
-    const loggedInUserId = req.user._id; // me (the follower)
-    const targetUserId = req.params.id; // target user
-
-    console.log('loggedInUser', loggedInUserId)
-    console.log('targetUser', targetUserId)
-
-    // Check if target user exists in the db
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    // Check if already following or not
-    if (!targetUser.followers.includes(loggedInUserId)) {
-      return res.status (400).json({
-        success: false,
-        message: 'User not in your follower List'
-      })
-    }else{
-      // Remove follower and following relationship
-      await User.findByIdAndUpdate(
-        targetUserId,
-        { $pull: { followers: loggedInUserId } } // remove from followers of target user
-      );
-    }
-
-    // Remove following relationship from logged-in user
-    await User.findByIdAndUpdate(
-      loggedInUserId,
-      { $pull: { following: targetUserId } } // remove from following of logged-in user
-    );
-    //send response
-    return res.status(200).json({
-      success: true,
-      message: 'Unfollowed user successfully'
-    })
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    })
-  }
-}
-
-
-//Block User
-export const blockUserRequest = async (req, res) => {
-    
-  try {
-    const loggedInUserId = req.user._id; // me (the blocker)
-    const targetUserId = req.params.id; // target user
-
-    console.log('LoggedInUserId', loggedInUserId);
-    console.log('targetUserId', targetUserId)
-
-    // Check if target user exists
-    const user = await User.findById(targetUserId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      })
-    }
-
-    // check user already in follower list or not
-    if (!user.followings.includes(loggedInUserId)) {
-      res.status(404).json({
-        success: false,
-        message: 'user not in your follower list'
-      })
-    }else{
-      await User.findByIdAndUpdate(
-        loggedInUserId,
-        {$pull: {followers: targetUserId}}
-      )
-
-      await User.findByIdAndUpdate(
-        targetUserId,
-        {$pull: {followings: loggedInUserId}}
-      )
-
-      // add to block list
-      await User.findByIdAndUpdate(
-        loggedInUserId,
-        {$addToSet: {blockedUsers: targetUserId}}
-      )
-
-      return res.status(200).json({
-        success: true,
-        message: 'User blocked successfully'
-      })
-    }
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    })
-  }
-}
-
-
-// Unblock User
-export const unblockUserRequest = async (req, res) => {};
-
 
 // profile view history
 export const profileViewHistory = async (req, res) => {
