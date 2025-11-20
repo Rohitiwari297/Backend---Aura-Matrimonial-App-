@@ -117,23 +117,45 @@ export const userRegister = async (req, res) => {
 };
 
 // Get all users 
+// Get all users with plan details
 export const getUsers = async (req, res) => {
-    console.log('hello')
-    //fetch all the users
     try {
-        //find the users and without password
-        const users = await User.find().select("-password");
+
+        const users = await User.aggregate([
+            {
+                $lookup: {
+                    from: "subscriptiondetails",           // collection name in DB
+                    localField: "_id",       // user._id
+                    foreignField: "user_id", // plan.user_id
+                    as: "planDetails" // kis name se field dikhni chahiye in frontend
+                },
+                
+            },
+            {
+                $project: {
+                    password: 0 // remove password from output
+                }
+            },
+            // {
+            //   $addFields : {
+            //      planCount: { $size: "$planDetails" }
+            //   }
+            // }
+        ]);
+
         res.status(200).json({
             message: 'Users fetched successfully',
-            users: users,
-        })
+            users: users
+        });
+
     } catch (error) {
         res.status(500).json({
             message: 'server error',
             error: error.message
-        })
+        });
     }
 };
+
 
 // Login user with email & password
 export const loginUser = async (req, res) => {

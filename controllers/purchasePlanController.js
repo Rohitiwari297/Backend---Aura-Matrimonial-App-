@@ -109,3 +109,98 @@ export const getSubscriptionDetails = async (req, res) => {
         });
     }
 };
+
+// get count of expired plan
+export const getExpPlan = async (req, res) => {
+    try {
+        const currentDate = new Date();
+
+        const expiredUsers = await SubscriptionDetails.aggregate([
+            {
+                $sort: { activeDate: -1 } // latest plan first
+            },
+            {
+                $group: {
+                    _id: "$user_id",
+                    latestPlan: { $first: "$$ROOT" }
+                }
+            },
+            {
+                $match: {
+                    "latestPlan.expiryDate": { $lte: currentDate }
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            message: "Expired users fetched successfully",
+            count: expiredUsers.length,
+            expiredUsers
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch expired plans",
+            error: error.message
+        });
+    }
+};
+
+
+// active users
+/**
+ * on the basis of:
+ *  The plan has already started
+ *  The plan has NOT expired
+ *  Any older expired plan is ignored
+ */
+export const getActiveUsers = async (req, res) => {
+    try {
+        const currentDate = new Date();
+
+        const activeUsers = await SubscriptionDetails.aggregate([
+            {
+                $sort: { activeDate: -1, _id: -1 }
+            },
+            {
+                $group: {
+                    _id: "$user_id",
+                    latestPlan: { $first: "$$ROOT" }
+                }
+            },
+            {
+                $match: {
+                    "latestPlan.activeDate": { $lte: currentDate },
+                    "latestPlan.expiryDate": { $gt: currentDate }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            { $unwind: "$userDetails" }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            message: "Active users fetched successfully",
+            count: activeUsers.length,
+            //users: activeUsers
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch active users",
+            error: error.message
+        });
+    }
+};
+
+
