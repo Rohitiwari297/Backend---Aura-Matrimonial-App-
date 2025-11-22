@@ -121,7 +121,20 @@ export const userRegister = async (req, res) => {
 export const getUsers = async (req, res) => {
     try {
 
+        // getting gender wise data user query parameter
+        let userTypeRequest = req.query.gender;
+        //create a variable of query parameters
+        let queryObj = {};
+        if(userTypeRequest) {
+          queryObj.gender = userTypeRequest
+        }
+
+        console.log("Query Object : ", queryObj);
+
         const users = await User.aggregate([
+            {
+              $match : queryObj  // ⬅ filter users by gender
+            },
             {
                 $lookup: {
                     from: "subscriptiondetails",           // collection name in DB
@@ -155,6 +168,8 @@ export const getUsers = async (req, res) => {
         });
     }
 };
+
+//
 
 
 // Login user with email & password

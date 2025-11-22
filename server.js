@@ -9,6 +9,7 @@ import subscriptionPlanRoutes from './routes/subscriptionPlanRoute.js'
 import purchasePlanRoute from './routes/purchasePlanRoute.js'
 import messageRoute from './routes/messageRoute.js'
 import socialMedia from './routes/followRequestRoute.js'
+import dashboard from './routes/dashboardRoute.js'
 import { app, server } from './socketIO/socketServer.js'
 
 import cors from 'cors'
@@ -50,6 +51,7 @@ app.use('/api/social', socialMedia)
 app.use('/subscriptionPlans', subscriptionPlanRoutes )
 app.use('/subcription', purchasePlanRoute)
 app.use('/message', messageRoute)
+app.use('/api/dashboard', dashboard)
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

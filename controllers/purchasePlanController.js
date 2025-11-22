@@ -129,6 +129,15 @@ export const getExpPlan = async (req, res) => {
                 $match: {
                     "latestPlan.expiryDate": { $lte: currentDate }
                 }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "userDetails",
+                    pipeline: [{$project: {fullName: 1, email: 1, phone: 1, gender: 1, is_subscribed: 1, activeDate: 1, expiryDate: 1}}]
+                }
             }
         ]);
 
@@ -136,7 +145,7 @@ export const getExpPlan = async (req, res) => {
             success: true,
             message: "Expired users fetched successfully",
             count: expiredUsers.length,
-            expiredUsers
+            data: expiredUsers
         });
 
     } catch (error) {
@@ -181,7 +190,9 @@ export const getActiveUsers = async (req, res) => {
                     from: "users",
                     localField: "_id",
                     foreignField: "_id",
-                    as: "userDetails"
+                    as: "userDetails",
+                    pipeline: [{$project: {fullName: 1, email: 1, phone: 1, gender: 1, is_subscribed: 1, activeDate: 1, expiryDate: 1}}]
+
                 }
             },
             { $unwind: "$userDetails" }
@@ -190,6 +201,7 @@ export const getActiveUsers = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Active users fetched successfully",
+            data: activeUsers,
             count: activeUsers.length,
             //users: activeUsers
         });
