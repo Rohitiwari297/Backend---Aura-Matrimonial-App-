@@ -19,11 +19,6 @@ const userSchema = new mongoose.Schema({
     enum: [roleTypes.user, roleTypes.admin],
     default: roleTypes.user,
   },
-//   username: {
-//   type: String,
-//   unique: false, // or just remove this line entirely
-//   sparse: true,  // optional: allows null/undefined values without index errors
-// },
   age : {
     type: Number,
     required: true,

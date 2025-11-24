@@ -28,13 +28,13 @@ const followRequestSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
-
-  // subscription info can stay here also
-  is_subscribed: {
-    type: Boolean,
-    default: false,
-  },
-
+  // sorting user list
+sortListUser: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users'
+  }
+],
   createdAt: {
     type: Date,
     default: Date.now,

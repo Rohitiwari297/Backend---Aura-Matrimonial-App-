@@ -288,45 +288,357 @@ export const getFollowersList = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
-    const userSocial = await SocialMedia.findOne({ userId: loggedInUserId })
-      .populate("followers", "name username email profilePic");
+    const userSocial = await SocialMedia.aggregate([
+      {
+        $match: {
+          userId: loggedInUserId
+        }
+      },
+      {
+        $addFields: {
+          followers: {
+            $map: {
+              input: "$followers",
+              as: "id",
+              in: { $toObjectId: "$$id" }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          let: { followerIds: "$followers" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ["$_id", "$$followerIds"] }
+              }
+            },
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                phone: 1,
+                profilePhotos: 1
+              }
+            }
+          ],
+          as: "followersDetails"
+        }
+      }
+    ]);
 
-    if (!userSocial) {
-      return res.status(404).json({ success: false, message: "Social profile not found" });
-    }
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      followers: userSocial.followers,
+      message: "Followers details fetched successfully",
+      data: userSocial
     });
 
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
 
 // get all followings list
 export const getFollowingList = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
-    const userSocial = await SocialMedia.findOne({ userId: loggedInUserId })
-      .populate("followings", "name username email profilePic");
+    const userSocial = await SocialMedia.aggregate([
+      {
+        $match: {
+          userId: loggedInUserId
+        }
+      },
+      {
+        $addFields: {
+          followings: {
+            $map: {
+              input: "$followings",
+              as: "id",
+              in: { $toObjectId: "$$id" }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users", // ⬅ your User collection name (lowercase + plural)
+          localField: "followings",
+          foreignField: "_id",
+          as: "followingDetails",
+          pipeline: [
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                phone: 1,
+                profilePhotos: 1
+              }
+            }
+          ]
+        }
+      }
+    ])
 
-    if (!userSocial) {
-      return res.status(404).json({ success: false, message: "Social profile not found" });
-    }
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      followings: userSocial.followings,
-    });
+      message: 'followings details fetched successfully',
+      data: userSocial
+    })
 
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
+
+
+// get all send Request list with users details
+
+export const getAllSendRequest = async (req, res) => {
+  try {
+    const loggedInUserId = req.user?._id;
+
+    const allSendRequestData = await SocialMedia.aggregate([
+      {
+        $match: { userId: loggedInUserId }
+      },
+      {
+        $addFields: {
+          sentRequests: {
+            $map: {
+              input: "$sentRequests",
+              as: "id",
+              in: { $toObjectId: "$$id" }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sentRequests",
+          foreignField: "_id",
+          as: "sendRequestDetails",
+          pipeline: [
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                phone: 1,
+                profilePhotos: 1
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "All send request fetched successfully",
+      data: allSendRequestData
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+// get all received Request list with users details
+export const getAllReceivedRequest = async (req, res) => {
+  try {
+    const loggedInUserId = req.user?._id;
+
+    const allReceivedRequestData = await SocialMedia.aggregate([
+      {
+        $match: { userId: loggedInUserId }
+      },
+      {
+        $addFields: {
+          receivedRequests: {
+            $map: {
+              input: "$followRequests",
+              as: "id",
+              in: { $toObjectId: "$$id" }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "receivedRequests",  // ✅ FIXED
+          foreignField: "_id",
+          as: "receivedRequestDetails",
+          pipeline: [
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                phone: 1,
+                profilePhotos: 1
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "All received request fetched successfully",
+      data: allReceivedRequestData
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+// short list user
+import mongoose from "mongoose";
+
+export const sortListUser = async (req, res) => {
+  try {
+    const loggedInUserId = req.user?._id;
+    const receivedSortId = req.params.id;
+
+    console.log('loggedInUserId:', loggedInUserId);
+    console.log('receivedSortId:', receivedSortId);
+
+    // Validate inputs
+    if (!loggedInUserId || !receivedSortId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request'
+      });
+    }
+
+    // Check if sorted user exists
+    const sortedUser = await User.findById(receivedSortId);
+    if (!sortedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'This userId does not exist'
+      });
+    }
+
+    // Convert ID to ObjectId (HIGHLY IMPORTANT)
+    const convertedId = new mongoose.Types.ObjectId(receivedSortId);
+
+    // Update sortListUser array
+    const updatedSocialMedia = await SocialMedia.findOneAndUpdate(
+      { userId: loggedInUserId },
+      { $addToSet: { sortListUser: convertedId } },  // store as ObjectId
+      { new: true }
+    );
+
+    if (!updatedSocialMedia) {
+      return res.status(404).json({
+        success: false,
+        message: 'Failed to update social media schema'
+      });
+    }
+
+    // SUCCESS RESPONSE
+    return res.status(201).json({
+      success: true,
+      message: "User sorted successfully",
+      data: updatedSocialMedia
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server Error while sorting the user',
+      error: error.message
+    });
+  }
+};
+
+
+// get all sort list users
+export const getAllSortList = async (req, res) => {
+
+  try {
+    const loggedInUserId = req.user?._id;
+    console.log('loggedInUserId', loggedInUserId)
+
+    if (!loggedInUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request — user not found"
+      });
+    }
+
+    const getAllSortListUsers = await SocialMedia.aggregate([
+      {
+        $match: {
+          userId: loggedInUserId
+        }
+      },
+      {
+        // Convert all IDs inside sortListUser[] to ObjectId
+        $addFields: {
+          sortListUser: {
+            $map: {
+              input: "$sortListUser",
+              as: "id",
+              in: { $toObjectId: "$$id" }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sortListUser",
+          foreignField: "_id",
+          as: "sortUsersData"
+        }
+      },
+      {
+        $project: {
+          sortUsersData: {
+            fullName: 1,
+            email: 1,
+            phone: 1,
+            profilePhotos: 1
+          }
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Sortlisted users fetched successfully",
+      data: getAllSortListUsers
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching sorted users",
+      error: error.message
+    });
+  }
+};
+
+
+
+
+
+
 
 
 

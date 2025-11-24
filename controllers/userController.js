@@ -169,8 +169,6 @@ export const getUsers = async (req, res) => {
     }
 };
 
-//
-
 
 // Login user with email & password
 export const loginUser = async (req, res) => {
