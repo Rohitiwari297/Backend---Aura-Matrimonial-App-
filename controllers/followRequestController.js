@@ -20,7 +20,7 @@ export const sendFollowRequest = async (req, res) => {
       });
     }
 
-    /** STEP 1 — Check if target user exists **/
+    /**  Check if target user exists **/
     const userExists = await User.findById(userTwoId);
     if (!userExists) {
       return res.status(404).json({
@@ -29,7 +29,7 @@ export const sendFollowRequest = async (req, res) => {
       });
     }
 
-    /** STEP 2 — Ensure social profiles exist for both users **/
+    /**  — Ensure social profiles exist for both users **/
     let requesterSocial = await SocialMedia.findOne({ userId: userOneId });
     if (!requesterSocial) {
       requesterSocial = await SocialMedia.create({ userId: userOneId });
@@ -40,7 +40,7 @@ export const sendFollowRequest = async (req, res) => {
       targetSocial = await SocialMedia.create({ userId: userTwoId });
     }
 
-    /** STEP 3 — Prevent duplicates **/
+    /**  — Prevent duplicates **/
     if (targetSocial.followers.includes(userOneId)) {
       return res.status(400).json({
         success: false,
@@ -55,7 +55,7 @@ export const sendFollowRequest = async (req, res) => {
       });
     }
 
-    /** STEP 4 — Add follow request **/
+    /**  — Add follow request **/
     await SocialMedia.findOneAndUpdate(
       { userId: userTwoId },
       { $addToSet: { followRequests: userOneId } }
