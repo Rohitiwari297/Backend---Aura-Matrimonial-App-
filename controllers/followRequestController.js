@@ -2,6 +2,7 @@
 // BD models
 import User from "../models/userSchema.js";
 import SocialMedia from "../models/followRequestSchema.js";
+import mongoose from "mongoose";
 
 
 
@@ -393,9 +394,7 @@ export const getFollowingList = async (req, res) => {
   }
 };
 
-
 // get all send Request list with users details
-
 export const getAllSendRequest = async (req, res) => {
   try {
     const loggedInUserId = req.user?._id;
@@ -473,7 +472,7 @@ export const getAllReceivedRequest = async (req, res) => {
       {
         $lookup: {
           from: "users",
-          localField: "receivedRequests",  // ✅ FIXED
+          localField: "receivedRequests",  
           foreignField: "_id",
           as: "receivedRequestDetails",
           pipeline: [
@@ -504,10 +503,7 @@ export const getAllReceivedRequest = async (req, res) => {
   }
 };
 
-
 // short list user
-import mongoose from "mongoose";
-
 export const sortListUser = async (req, res) => {
   try {
     const loggedInUserId = req.user?._id;
@@ -524,7 +520,7 @@ export const sortListUser = async (req, res) => {
       });
     }
 
-    // Check if sorted user exists
+    // Check if user to be sorted exists
     const sortedUser = await User.findById(receivedSortId);
     if (!sortedUser) {
       return res.status(404).json({
@@ -533,28 +529,35 @@ export const sortListUser = async (req, res) => {
       });
     }
 
-    // Convert ID to ObjectId (HIGHLY IMPORTANT)
+    // Ensure sortListUser stores ObjectIds
     const convertedId = new mongoose.Types.ObjectId(receivedSortId);
 
-    // Update sortListUser array
-    const updatedSocialMedia = await SocialMedia.findOneAndUpdate(
-      { userId: loggedInUserId },
-      { $addToSet: { sortListUser: convertedId } },  // store as ObjectId
-      { new: true }
-    );
-
-    if (!updatedSocialMedia) {
-      return res.status(404).json({
-        success: false,
-        message: 'Failed to update social media schema'
+    // Fetch logged-in user's SocialMedia document OR create if missing
+    let socialMedia = await SocialMedia.findOne({ userId: loggedInUserId });
+    if (!socialMedia) {
+      socialMedia = await SocialMedia.create({
+        userId: loggedInUserId,
+        sortListUser: []
       });
     }
 
+    /** 🔥 Prevent duplicates BEFORE updating **/
+    if (socialMedia.sortListUser.some(id => id.toString() === receivedSortId)) {
+      return res.status(409).json({
+        success: false,
+        message: 'User already in your sort-list'
+      });
+    }
+
+    // Add to sortListUser array
+    socialMedia.sortListUser.push(convertedId);
+    await socialMedia.save();
+
     // SUCCESS RESPONSE
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: "User sorted successfully",
-      data: updatedSocialMedia
+      message: "User added to sort-list successfully",
+      data: socialMedia
     });
 
   } catch (error) {
@@ -565,7 +568,6 @@ export const sortListUser = async (req, res) => {
     });
   }
 };
-
 
 // get all sort list users
 export const getAllSortList = async (req, res) => {

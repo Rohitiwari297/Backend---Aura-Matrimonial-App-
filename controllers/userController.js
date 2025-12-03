@@ -373,6 +373,7 @@ export const getMatches = async (req, res) => {
     const excludedIds = [
       ...(social?.followers || []),
       ...(social?.followings || []),
+      ...(social?.sentRequests || []), 
       userId,
     ];
 
@@ -380,7 +381,7 @@ export const getMatches = async (req, res) => {
 
     // 1. Required: Opposite gender filter
     const genderFilter =
-      user.gender === "Male" ? "Female" : "Male";
+      user.gender === "MALE" ? "FEMALE" : "MALE";
 
     let candidates = await User.find({
       gender: genderFilter,
