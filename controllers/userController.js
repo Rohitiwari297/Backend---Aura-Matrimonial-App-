@@ -374,6 +374,7 @@ export const getMatches = async (req, res) => {
       ...(social?.followers || []),
       ...(social?.followings || []),
       ...(social?.sentRequests || []), 
+      ...(social?.sortListUser || []),
       userId,
     ];
 

@@ -637,6 +637,74 @@ export const getAllSortList = async (req, res) => {
 };
 
 
+// get all social media details of user
+export const getSocialMediaDetails = async (req, res) => {
+  // Get the logged-in user's ID from the authenticated request
+  const loggedInUserId = req.user?._id;
+
+  try {
+    // Fetch social media details for this user (single document)
+    const userDetails = await SocialMedia.findOne({ userId: loggedInUserId });
+
+    // If no details found, return an error response
+    if (!userDetails) {
+      return res.status(400).json({
+        success: false,
+        message: 'No social media details found for this user'
+      });
+    }
+
+    // Extract required fields from the userDetails document
+    const {
+      sentRequests,
+      followRequests,
+      followers,
+      followings,
+      sortListUser
+    } = userDetails;
+
+    // Return successful response with all processed data
+    return res.status(200).json({
+      success: true,
+      message: 'Details fetched successfully',
+
+      // Wrapping details inside an array as you intended
+      data: [
+        {
+          // Logged-in user's ID
+          userId: loggedInUserId,
+
+          // List of sent follow requests
+          sendRequestList: sentRequests,
+
+          // List of received follow requests
+          receiveRequest: followRequests,
+
+          // Combined list of followers + followings
+          acceptedRequest: [...followers, ...followings],
+
+          // Sorted list of users (as per your schema)
+          sortedUsers: sortListUser
+        }
+      ]
+    });
+  } catch (error) {
+    // Handle server errors
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while fetching social media details',
+      error: error.message
+    });
+  }
+};
+
+
+
+
+
+
+
+
 
 
 
