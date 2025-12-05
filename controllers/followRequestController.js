@@ -698,6 +698,59 @@ export const getSocialMediaDetails = async (req, res) => {
   }
 };
 
+// remove from sort list data
+export const removeSortedUser = async (req, res) => {
+  const loggedInUser = req.user?._id;
+  const receivedUser  = req.params.id
+
+  console.log('loggedIdUser:',loggedInUser, 'receivedUser:', receivedUser)
+
+  try {
+
+    if(!receivedUser){
+      res.status(401).json({
+        success: false,
+        message: 'user Id required in params'
+      })
+    }
+
+    const sortedUser = await SocialMedia.findOne({userId: loggedInUser})
+    const sortingUser = await SocialMedia.findOne({userId: receivedUser})
+
+    if( !sortedUser || !sortingUser){
+      res.status(400).json({
+        success: false,
+        message: 'User do not have social account'
+      })
+    }
+
+    if( !sortedUser.sortListUser.includes(receivedUser)){
+      res.status(400).json({
+        success: false,
+        message: 'This user not present in your list'
+      })
+    }else{
+      await SocialMedia.updateOne(
+        {userId: loggedInUser},
+        {$pull: {sortListUser: receivedUser}}
+
+      )
+    }
+    res.status(200).json({
+      success: true,
+      message: 'User removed successfully'
+    })
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error with removing the user from sort-list',
+      error: error.message
+    })
+  }
+
+}
+
 
 
 

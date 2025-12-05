@@ -9,8 +9,8 @@ export const getFilteredUsers = async (req, res) => {
     const userQueryRequest = req.query.gender
     let queryObj = {};
     if (userQueryRequest) {
-        queryObj = {gender: userQueryRequest}  // you can user this one 
-        // queryObj = queryObj.userQueryRequest   // or this one, both are correct
+        queryObj = {gender: userQueryRequest}  
+        // queryObj = queryObj.userQueryRequest  
     }
 
     console.log("Query Object : ", queryObj);
