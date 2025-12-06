@@ -59,7 +59,7 @@ export const editSubscriptionPlan = async (req, res) => {
   // Implementation for editing a subscription plan
 
     const planId = req.params.id;
-    const { name, price, trialPeriodDays, type, amountPaid, maxMessageRequests } = req.body;
+    const { name, price, trialPeriodDays, type, amountPaid, maxMessageRequests, validity_days } = req.body;
     
     //validation
     if (!name || !price || maxMessageRequests === undefined ) {
@@ -88,6 +88,7 @@ export const editSubscriptionPlan = async (req, res) => {
     subscription.type = type;
     subscription.amountPaid = amountPaid;
     subscription.maxMessageRequests = maxMessageRequests;
+    subscription.validity_days = validity_days;
 
     // save the updates
     await subscription.save();

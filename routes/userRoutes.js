@@ -12,6 +12,7 @@ import {
   updateUser,
   updateProfile,
   updatePartnerPreferences,
+  changePassword,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
@@ -24,6 +25,7 @@ route.post('/register', userRegister);
 route.get('/getUser', getUsers);
 route.post('/login', loginUser);
 route.put('/updateUser', authMiddleware, updateUser);
+route.post('/change-password', authMiddleware, changePassword);
 route.post('/generateOtp', generateOtp);
 route.post('/receivedOtp', receivedOtp);
 

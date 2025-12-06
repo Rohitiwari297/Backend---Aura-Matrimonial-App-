@@ -120,7 +120,6 @@ export const acceptFollowRequest = async (req, res) => {
   }
 };
 
-
 //reject Follow Request
 export const rejectFollowRequest = async (req, res) => {
   try {
@@ -156,7 +155,6 @@ export const rejectFollowRequest = async (req, res) => {
   }
 };
 
-
 //Cancel Follow Request
 export const cancelSendRequest = async (req, res) => {
   try {
@@ -191,7 +189,6 @@ export const cancelSendRequest = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
 
 // unfollow user
 export const unfollowRequest = async (req, res) => {
@@ -231,7 +228,6 @@ export const unfollowRequest = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
 
 //Block User
 export const blockUserRequest = async (req, res) => {
@@ -279,10 +275,8 @@ export const blockUserRequest = async (req, res) => {
   }
 };
 
-
 // Unblock User
 export const unblockUserRequest = async (req, res) => {};
-
 
 // get all follower list
 export const getFollowersList = async (req, res) => {
@@ -447,7 +441,6 @@ export const getAllSendRequest = async (req, res) => {
     });
   }
 };
-
 
 // get all received Request list with users details
 export const getAllReceivedRequest = async (req, res) => {
@@ -635,7 +628,6 @@ export const getAllSortList = async (req, res) => {
     });
   }
 };
-
 
 // get all social media details of user
 export const getSocialMediaDetails = async (req, res) => {

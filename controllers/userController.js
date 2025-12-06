@@ -358,6 +358,57 @@ export const updateUser = async (req, res) => {
 
 }
 
+/**
+ * NEW ADDITION
+ * CHANGE PASSWOR API
+ */
+export const changePassword = async (req, res) => {
+  try {
+    const userId = req.user?._id; // Logged-in user ID from auth middleware
+    const { oldPassword, newPassword } = req.body;
+
+    // Check required fields
+    if (!oldPassword || !newPassword ) {
+      return res.status(400).json({
+        message: "Old password and new password are required",
+      });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Check old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Old password is incorrect",
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      message: "Password changed successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 ///Recommendations on behalf of partner preference
 export const getMatches = async (req, res) => {
   try {

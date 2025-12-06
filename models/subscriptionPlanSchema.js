@@ -3,20 +3,20 @@ import mongoose from "mongoose";
 const subscriptionPlanSchema = new mongoose.Schema({
   name: { 
     type: String, 
-    required: true 
+    //required: true 
   },
   price: { 
     type: Number, 
-    required: true 
+    //required: true 
   },
   maxMessageRequests: {     //chenge mexFollowRequest -> maxMessageRequest
     type: Number, 
-    required: true, 
+    //required: true, 
     default: 10 
   },
   validity_days: {
     type: Number,
-    required: true
+    //required: true
   }
 }, { timestamps: true });
 
