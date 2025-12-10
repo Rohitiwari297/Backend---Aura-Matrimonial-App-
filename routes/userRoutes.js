@@ -13,6 +13,7 @@ import {
   updateProfile,
   updatePartnerPreferences,
   changePassword,
+  getUserById,
 } from '../controllers/userController.js';
 
 import authMiddleware from '../middlewares/Auth.js';
@@ -23,6 +24,7 @@ const route = express.Router();
 // Auth & User Management
 route.post('/register', userRegister);
 route.get('/getUser', getUsers);
+route.get('/getUser/:id', getUserById)
 route.post('/login', loginUser);
 route.put('/updateUser', authMiddleware, updateUser);
 route.post('/change-password', authMiddleware, changePassword);

@@ -11,6 +11,7 @@ import messageRoute from './routes/messageRoute.js'
 import socialMedia from './routes/followRequestRoute.js'
 import dashboard from './routes/dashboardRoute.js'
 import numerology from './routes/numerologyRoute.js'
+import mail from './routes/sendMailRoute.js'
 import { app, server } from './socketIO/socketServer.js'
 
 import cors from 'cors'
@@ -54,6 +55,7 @@ app.use('/subcription', purchasePlanRoute)
 app.use('/message', messageRoute)
 app.use('/api/dashboard', dashboard)
 app.use('/api/numerology', numerology)
+app.use('/api/mail', mail)
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

@@ -16,8 +16,8 @@ router.get('/get/sendRequest', authMiddleware, getAllSendRequest);
 router.get('/get/receivedRequest', authMiddleware, getAllReceivedRequest);
 router.post('/sort/user/:id', authMiddleware, sortListUser)
 router.get('/get/sort/users/', authMiddleware, getAllSortList)
-router.post('/remove/sorted-user/:id', authMiddleware, removeSortedUser)
-router.get('/get/social-media-details', authMiddleware, getSocialMediaDetails)
+router.post('/remove/sorted-user/:id', authMiddleware, removeSortedUser) // newly added
+router.get('/get/social-media-details', authMiddleware, getSocialMediaDetails) // newly add
 
 
 

@@ -67,6 +67,16 @@ export const sendFollowRequest = async (req, res) => {
       { $addToSet: { sentRequests: userTwoId } }
     );
 
+    /** if send request is from sort list then we have to remove form sort after send requsts */
+    if (requesterSocial.sortListUser.includes(userTwoId)) {
+      await SocialMedia.findOneAndUpdate(
+        { userId: userOneId },   // userOneId = the logged-in user's ID
+        { $pull: { sortListUser: userTwoId } }
+      );
+      //console.log('removed id from sort list');
+    }
+
+
     return res.status(200).json({
       success: true,
       message: "Follow request sent successfully"
@@ -706,6 +716,7 @@ export const removeSortedUser = async (req, res) => {
       })
     }
 
+    // check user social media a/c
     const sortedUser = await SocialMedia.findOne({userId: loggedInUser})
     const sortingUser = await SocialMedia.findOne({userId: receivedUser})
 

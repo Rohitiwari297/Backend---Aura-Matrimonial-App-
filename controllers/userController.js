@@ -121,15 +121,19 @@ export const userRegister = async (req, res) => {
 export const getUsers = async (req, res) => {
     try {
 
-        // getting gender wise data user query parameter
+        // Getting gender and userId from query parameters
         let userTypeRequest = req.query.gender;
-        //create a variable of query parameters
+        let userIdRequest = req.query._id;
+
+        // Create query object
         let queryObj = {};
-        if(userTypeRequest) {
-          queryObj.gender = userTypeRequest
+
+        if (userTypeRequest) {
+          queryObj.gender = userTypeRequest;
         }
 
         console.log("Query Object : ", queryObj);
+        console.log("Query id : ", queryObj);
 
         const users = await User.aggregate([
             {
@@ -168,6 +172,40 @@ export const getUsers = async (req, res) => {
         });
     }
 };
+
+
+//Get user details by id
+export const getUserById = async (req, res) => {
+  const user = req.params.id;
+  try {
+    if(!user) {
+      res.state(400).json({
+        success: false,
+        message: 'User id Required'
+      })
+    }
+    const userDetais = await User.findById({_id: user})
+    if (!userDetais) {
+      res.state(400).json({
+        success: false,
+        message: 'User not exist'
+      })
+    }
+
+    // send response to the user
+    res.status(200).json({
+      success: true,
+      message: 'User details fetched successfully',
+      data: userDetais
+    })
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message:'Server error while getting the user by id'
+    })
+  }
+}
 
 
 // Login user with email & password
@@ -449,7 +487,7 @@ export const getMatches = async (req, res) => {
     }
 
     // --------------------------------------------
-    // ⭐ PRIORITY SCORE SYSTEM
+    //  PRIORITY SCORE SYSTEM
     // --------------------------------------------
     const weights = {
       religion: 20,
@@ -556,7 +594,6 @@ export const getMatches = async (req, res) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 };
-
 
 // Login user with mobile number otp
 export const generateOtp = async (req, res) => {
