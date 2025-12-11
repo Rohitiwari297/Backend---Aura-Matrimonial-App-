@@ -88,7 +88,26 @@ export const getSubscriptionDetails = async (req, res) => {
         }
 
         // find details in db as per userId
-        const subscriptionDetails = await SubscriptionDetails.findOne({ user_id: userId });
+        //const subscriptionDetails = await SubscriptionDetails.find({ user_id: userId });
+
+        // if we need also plan details then we need to use aggregation
+        const subscriptionDetails = await SubscriptionDetails.aggregate([
+            {
+                $match: {
+                    user_id: userId
+                }
+            },
+            {
+                $lookup: {
+                    from: "subscriptionplans",      // ⬅ your plans collection name
+                    localField: "subscription_plan_id",
+                    foreignField: "_id",
+                    as: "planDetails"
+                }
+            },
+            { $unwind: "$planDetails" },
+            { $sort: { createdAt: -1 } }
+        ]);
         if (!subscriptionDetails) {
             res.status(404).json({
                 success: false,
@@ -109,6 +128,64 @@ export const getSubscriptionDetails = async (req, res) => {
         });
     }
 };
+
+
+//get current Active plan
+export const getCurrentActivePlan = async (req, res) => {
+
+    try {
+        const userId = req.user?._id;
+        console.log('userId:', userId)
+
+        const today = new Date();
+
+        const activePlan = await SubscriptionDetails.aggregate([
+            {
+                $match: {
+                    user_id: userId,
+                    activeDate: { $lte: today },
+                    expiryDate: { $gte: today }
+                }
+            },
+            {
+                $sort: { activeDate: 1 }   // latest active plan
+            },
+            {
+                $limit: 1                  // return only the current active plan
+            },
+            {
+                $lookup: {
+                    from: "subscriptionplans",
+                    localField: "subscription_plan_id",
+                    foreignField: "_id",
+                    as: "planDetails"
+                }
+            },
+            { $unwind: "$planDetails" }
+        ]);
+
+        if (!activePlan.length) {
+            return res.status(404).json({
+                success: false,
+                message: "No active plan found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Current active plan",
+            data: activePlan[0]
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch active plan",
+            error: error.message
+        });
+    }
+};
+
 
 // get count of expired plan
 export const getExpPlan = async (req, res) => {

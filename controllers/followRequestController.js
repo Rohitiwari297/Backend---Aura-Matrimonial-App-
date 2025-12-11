@@ -398,6 +398,71 @@ export const getFollowingList = async (req, res) => {
   }
 };
 
+//get following + followers = Request Accepted user (friends) with users details
+export const getAllAccepted = async (req, res) => {
+  const userId = req.user?._id;
+
+  try {
+    // Step 1: Get social media info of user
+    const userDetails = await SocialMedia.findOne({ userId });
+
+    if (!userDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "User social data not found"
+      });
+    }
+
+    // Step 2: Combine followers + followings
+    const acceptedUsers = [
+      ...userDetails.followers,
+      ...userDetails.followings
+    ];
+
+    if (acceptedUsers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No accepted users found",
+        data: []
+      });
+    }
+
+    // Step 3: Fetch user details (only selected fields)
+    const acceptedDetails = await User.aggregate([
+      {
+        $match: {
+          _id: {
+            $in: acceptedUsers.map(id => new mongoose.Types.ObjectId(id))
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          fullName: 1,
+          email: 1,
+          phone: 1,
+          profilePhoto: { $arrayElemAt: ["$profilePhotos.url", 0] }, // first photo only
+          // profilePhotos: 1  // (OR) use this if you want full array
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Accepted users fetched successfully",
+      data: acceptedDetails
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching accepted users",
+      error: error.message
+    });
+  }
+};
+
 // get all send Request list with users details
 export const getAllSendRequest = async (req, res) => {
   try {

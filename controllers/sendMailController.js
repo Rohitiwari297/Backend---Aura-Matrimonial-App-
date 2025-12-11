@@ -1,5 +1,6 @@
 import User from '../models/userSchema.js'
 import nodemailer from 'nodemailer'
+import jwt from 'jsonwebtoken'
 
 //send otp on email
 export const sendMail = async (req, res) => {
@@ -40,8 +41,8 @@ export const sendMail = async (req, res) => {
             //host: "smtp-relay.brevo.com",
             port: 587,
             auth: {
-                user: 'emmalee.schinner75@ethereal.email',
-                pass: 'nqHNbjxvpKT8qc52tc'
+                user: 'gussie.mertz@ethereal.email',
+                pass: 'YPJeb5TsumDvHeWW55'
             }
         });
 
@@ -76,5 +77,53 @@ export const sendMail = async (req, res) => {
 
 // login with opt 
 export const loginWithMailOtp = async  (req, res) => {
+    const {email , otp } = req.body
 
+    try {
+         if (!email || !otp) {
+            res.status(400).json({
+                success: false,
+                message: 'email & opt both required'
+            })
+         }
+
+         const user = User.findOne({email})
+         if (!user) {
+            res.status(400).json({
+                success: false,
+                message: 'user Not exist'
+            })
+         }
+
+         // compare both otp
+         const compareOtp = toString(user.otp) === toString(otp)
+         if (!compareOtp){
+            res.status(400).json({
+                success: false,
+                message: 'Invalid OTP'
+            })
+         }
+
+         const token = jwt.sign(
+            {userId: user._id},
+            process.env.SECRET_KEY,
+            // { expiresIn: process.env.JWT_EXPIRE || "7d" }
+         )
+
+         // remove otp
+         user.otp = undefined;
+
+         // send the response to the user
+         res.status(200).json({
+            success: true,
+            message: 'User login successfully',
+            token: token
+         })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error while login with opt',
+            error: error.message
+        })
+    }
 }

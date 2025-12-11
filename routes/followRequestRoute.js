@@ -1,5 +1,5 @@
 import express from "express";
-import { acceptFollowRequest, cancelSendRequest, getAllReceivedRequest, getAllSendRequest, getAllSortList, getFollowersList, getFollowingList, getSocialMediaDetails, rejectFollowRequest, removeSortedUser, sendFollowRequest, sortListUser, unfollowRequest } from "../controllers/followRequestController.js";
+import { acceptFollowRequest, cancelSendRequest, getAllAccepted, getAllReceivedRequest, getAllSendRequest, getAllSortList, getFollowersList, getFollowingList, getSocialMediaDetails, rejectFollowRequest, removeSortedUser, sendFollowRequest, sortListUser, unfollowRequest } from "../controllers/followRequestController.js";
 import authMiddleware from "../middlewares/Auth.js";
 
 const router = express.Router();
@@ -12,6 +12,7 @@ router.post('/follow/reject/:id', authMiddleware, rejectFollowRequest);
 router.post('/cancel-request/:id', authMiddleware, cancelSendRequest);
 router.get('/get/followers', authMiddleware, getFollowersList);
 router.get('/get/followings', authMiddleware, getFollowingList);
+router.get('/get/friends', authMiddleware, getAllAccepted)
 router.get('/get/sendRequest', authMiddleware, getAllSendRequest);
 router.get('/get/receivedRequest', authMiddleware, getAllReceivedRequest);
 router.post('/sort/user/:id', authMiddleware, sortListUser)
