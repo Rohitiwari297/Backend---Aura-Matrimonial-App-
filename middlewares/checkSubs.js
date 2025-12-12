@@ -1,20 +1,22 @@
 import SubscriptionDetails from "../models/subscriptionDetailsSchma.js";
 import SubscriptionPlan from "../models/subscriptionPlanSchema.js";
 import User from "../models/userSchema.js";
+import Message from "../models/messageSchema.js";
 
-
-export const validateSubscriptions  = async (req, res, next) => {
-
+export const validateSubscriptions = async (req, res, next) => {
   try {
-    // Check if user has active subscription
-    //validation for user
     const userId = req.user._id;
-    console.log('requesting body:' , userId)
+    const receivedId = req.params.id;
+    console.log('receivedId:', receivedId)
 
+    // 1. Check active subscription
     const subscriptionDetails = await SubscriptionDetails.findOne({
       user_id: userId,
       expiryDate: { $gte: new Date() },
     });
+
+    //console.log('subscription details:', subscriptionDetails)
+
     if (!subscriptionDetails) {
       return res.status(401).json({
         success: false,
@@ -22,32 +24,51 @@ export const validateSubscriptions  = async (req, res, next) => {
       });
     }
 
+    // 2. Fetch plan info
+    const subscriptionPlan = await SubscriptionPlan.findById(
+      subscriptionDetails.subscription_plan_id
+    );
 
-    /**
-     * if user has subscription plan then what is the maxMessageRequests in user's plan 
-     * if user's maxMessageRequests exceeded then user can't send message any people
-     * means assume maxMessageRequests = 10 then user can chat with only 10 deferent profiles
-     */
+    //console.log('subscriptionPlan details:', subscriptionPlan)
 
-    // Check if user has exceeded maxMessageRequests
-    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionDetails.subscription_plan_id);
     if (!subscriptionPlan) {
       return res.status(404).json({
         success: false,
         message: "Subscription plan not found",
       });
     }
-    const userMessageCount = await SubscriptionPlan.countDocuments({
-      sender: userId,
+
+    // 3. Count user sent messages (unique receivers)
+    const uniqueReceivers = await Message.distinct("receiverId", {
+      senderId: userId,
     });
-    if (userMessageCount >= subscriptionPlan.maxMessageRequests) {
-      return res.status(401).json({
-        success: false,
-        message: "User has exceeded max message requests",
-      });
+
+    console.log('uniqueReceivers details:', uniqueReceivers)
+
+
+    // check previous chat with receiver (new way using some || )
+    const alreadyChatted = uniqueReceivers.some( 
+      id => id.equals(receivedId)
+    )
+    console.log('alreadyChatted', alreadyChatted)
+
+
+    //find length of how 
+    const userMessageCount = uniqueReceivers.length;
+    console.log('available message request:',userMessageCount - subscriptionPlan.maxMessageRequests)
+
+    // if Login user try to message of new user
+    if (!alreadyChatted){
+      if (userMessageCount >= subscriptionPlan.maxMessageRequests) {
+        return res.status(401).json({
+          success: false,
+          message: "User has exceeded max message requests",
+        });
+      }
     }
 
     next();
+
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -55,8 +76,4 @@ export const validateSubscriptions  = async (req, res, next) => {
       error: error.message,
     });
   }
-}
-
-
-
-// export default validateSubscriptions;
+};
