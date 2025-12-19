@@ -150,9 +150,22 @@ export const getUsers = async (req, res) => {
             },
             {
                 $project: {
-                    password: 0 // remove password from output
-                }
+                    password: 0, // remove password from output
+                    otp: 0,
+                    refreshToken: 0,
+                    __v: 0
+                }   
             },
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                phone: 1,
+                gender: 1,
+                planDetails: 1,
+                location: 1
+              }
+            }
             // {
             //   $addFields : {
             //      planCount: { $size: "$planDetails" }

@@ -12,8 +12,9 @@ import socialMedia from './routes/followRequestRoute.js'
 import dashboard from './routes/dashboardRoute.js'
 import numerology from './routes/numerologyRoute.js'
 import mail from './routes/sendMailRoute.js'
-import { app, server } from './socketIO/socketServer.js'
+import notify from './routes/notificationRoute.js'
 
+import { app, server } from './socketIO/socketServer.js'
 import cors from 'cors'
 
 
@@ -41,9 +42,11 @@ app.use('/ping', (req, res)=> {
 
 //cors
 app.use(cors({
-  origin: "*", // or "http://localhost:5173"
+  // origin: "*", // or "http://localhost:5173"
+  origin:"http://localhost:5173",
   methods: "GET,POST,PUT,DELETE",
-  credentials: true
+  credentials: true,
+   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 
@@ -56,6 +59,7 @@ app.use('/message', messageRoute)
 app.use('/api/dashboard', dashboard)
 app.use('/api/numerology', numerology)
 app.use('/api/mail', mail)
+app.use('/api/notification', notify)
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));

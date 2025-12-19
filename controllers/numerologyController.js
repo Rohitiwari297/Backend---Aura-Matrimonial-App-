@@ -13,10 +13,10 @@ export const numerologyDetails = async (req, res) => {
             });
         }
 
-        const { fullName, birthPlace, birthDate, birthTime, paymentStatus, paymentOf } = req.body;
+        const { fullName, birthPlace, birthDate, birthTime, paymentStatus, paymentOf, pdfUrl } = req.body;
 
         // Validation
-        if (!fullName || !birthPlace || !birthDate || !birthTime || !paymentStatus || !paymentOf) {
+        if (!fullName || !birthPlace || !birthDate || !birthTime || !paymentStatus || !paymentOf || !pdfUrl) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -31,7 +31,8 @@ export const numerologyDetails = async (req, res) => {
             birthDate,
             birthTime,
             paymentStatus,
-            paymentOf
+            paymentOf,
+            pdfUrl
         });
 
         return res.status(201).json({

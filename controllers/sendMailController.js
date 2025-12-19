@@ -30,7 +30,7 @@ export const sendMail = async (req, res) => {
         const generateOtp = Math.floor(100000 + Math.random() * 900000);
         console.log("Generated OTP:", generateOtp);
 
-        // TODO: Save OTP in DB (recommended)
+        // Save OTP in DB (recommended)
          findMailInDb.otp = generateOtp;
          findMailInDb.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 min
          await findMailInDb.save();
@@ -41,8 +41,8 @@ export const sendMail = async (req, res) => {
             //host: "smtp-relay.brevo.com",
             port: 587,
             auth: {
-                user: 'gussie.mertz@ethereal.email',
-                pass: 'YPJeb5TsumDvHeWW55'
+                user: 'leslie23@ethereal.email',
+                pass: 'PmJDfgDaGSGvZEyJEk'
             }
         });
 

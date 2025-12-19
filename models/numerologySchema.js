@@ -34,6 +34,9 @@ const numerologySchema = new  mongoose.Schema({
     paymentStatus:{
         type: Boolean,
         default: false
+    },
+    pdfUrl: {
+        type: String,
     }
 
 }, {timestamps: true})
