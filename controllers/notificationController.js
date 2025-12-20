@@ -1,7 +1,10 @@
 // WRITTING NOTIFICATION CONTROLLER
 
 import Notification from "../models/notificationSchema.js";
+<<<<<<< HEAD
 import { sendNotification } from "../services/sendNotification.js";
+=======
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
 
 //SEND NOTIFICATION - (ONE-TO-ONE BY USER ID)
 export const sendNotificaion = async (req, res) => {
@@ -18,15 +21,22 @@ export const sendNotificaion = async (req, res) => {
             })
         }
 
+<<<<<<< HEAD
         // SAVE NOTIFICATION IN BD
+=======
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
         const notifyMessage = await new Notification({
             receivedId: receivedId,
             title: title,
             message: message,
         }).save()
 
+<<<<<<< HEAD
         // SEND NOTIFICATION VIA FIREBASE BY TOKEN
         await sendNotification( title, message)
+=======
+
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
 
         res.status(200).json({
             success: true,
@@ -43,6 +53,7 @@ export const sendNotificaion = async (req, res) => {
     }
 }
 
+<<<<<<< HEAD
 //GET ALL NOTIFICATIONS DATA
 export const getNotificationData = async (req, res) => {
     // GETTING ALL NOTIFICATION MESSAGE
@@ -125,3 +136,10 @@ export const deleteNotification = async (req, res) => {
 }
 
 // 
+=======
+
+//GET ALL NOTIFICATIONS DATA
+export const getNotificationData = async (req, res) => {
+ 
+}
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131

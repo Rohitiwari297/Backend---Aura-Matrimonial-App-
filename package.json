@@ -10,12 +10,18 @@
   "author": "RSS Infotech Pvt. Ltd.",
   "license": "ISC",
   "dependencies": {
+<<<<<<< HEAD
     "axios": "^1.13.2",
+=======
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+<<<<<<< HEAD
     "google-auth-library": "^10.5.0",
+=======
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",

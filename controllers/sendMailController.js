@@ -41,8 +41,13 @@ export const sendMail = async (req, res) => {
             //host: "smtp-relay.brevo.com",
             port: 587,
             auth: {
+<<<<<<< HEAD
                 user: 'magdalena.jenkins68@ethereal.email',
                 pass: '1NysaMbnhVwz6A9bZZ'
+=======
+                user: 'leslie23@ethereal.email',
+                pass: 'PmJDfgDaGSGvZEyJEk'
+>>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
             }
         });
 
