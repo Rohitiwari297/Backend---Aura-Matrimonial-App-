@@ -37,17 +37,12 @@ export const sendMail = async (req, res) => {
 
         // Mail transporter
         const transporter = nodemailer.createTransport({
-            host: 'smtp.ethereal.email',                     // only for testing perpose
+            host: process.env.SMTP_HOST,                     // only for testing perpose
             //host: "smtp-relay.brevo.com",
-            port: 587,
+            port: process.env.SMTP_PORT,
             auth: {
-<<<<<<< HEAD
-                user: 'magdalena.jenkins68@ethereal.email',
-                pass: '1NysaMbnhVwz6A9bZZ'
-=======
-                user: 'leslie23@ethereal.email',
-                pass: 'PmJDfgDaGSGvZEyJEk'
->>>>>>> 90aecdb9db7c7d089dfb2b2da8b259a87fc6c131
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
             }
         });
 
