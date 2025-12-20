@@ -1,7 +1,7 @@
 // WRITTING NOTIFICATION CONTROLLER
 
 import Notification from "../models/notificationSchema.js";
-
+import { sendNotification } from "../services/sendNotification.js";
 
 //SEND NOTIFICATION - (ONE-TO-ONE BY USER ID)
 export const sendNotificaion = async (req, res) => {
@@ -25,7 +25,8 @@ export const sendNotificaion = async (req, res) => {
             message: message,
         }).save()
 
-        
+        // SEND NOTIFICATION VIA FIREBASE BY TOKEN
+        await sendNotification( title, message)
 
         res.status(200).json({
             success: true,
