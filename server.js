@@ -16,6 +16,7 @@ import notify from './routes/notificationRoute.js'
 
 import { app, server } from './socketIO/socketServer.js'
 import cors from 'cors'
+import admin from './routes/adminRoute.js'
 
 
 //create instance 
@@ -52,9 +53,10 @@ app.use(cors({
 
 //create route
 app.use('/users', userRoutes )
+app.use('/api/admin',admin )
 app.use('/api/social', socialMedia)
 app.use('/subscriptionPlans', subscriptionPlanRoutes )
-app.use('/subcription', purchasePlanRoute)
+app.use('/api/subscription', purchasePlanRoute)
 app.use('/message', messageRoute)
 app.use('/api/dashboard', dashboard)
 app.use('/api/numerology', numerology)

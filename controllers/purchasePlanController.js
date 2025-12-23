@@ -243,6 +243,9 @@ export const getExpPlan = async (req, res) => {
  *  Any older expired plan is ignored
  */
 export const getActiveUsers = async (req, res) => {
+    const user = req.user?._id
+
+    
     try {
         const currentDate = new Date();
 

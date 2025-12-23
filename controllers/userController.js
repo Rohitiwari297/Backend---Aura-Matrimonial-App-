@@ -245,7 +245,6 @@ export const loginUser = async (req, res) => {
     }
 
     if (user) {
-        //console.log("user from db:",user.password)
 
         const isMatch = await bcrypt.compare(password, user.password);
 
@@ -256,10 +255,14 @@ export const loginUser = async (req, res) => {
                 // { expiresIn: process.env.EXPIRED_ID } //only user for web not for mobile app
             );
 
+            user.password = undefined;
+            user.otp = undefined;
+
             res.status(200).json({
-                message: "User login successful",
-                token,
-                user,
+              success: true,
+              message: "User login successful",
+              token,
+              user,
             });
 
         } else {
@@ -1154,6 +1157,8 @@ export const profileViewHistory = async (req, res) => {
     })
   }
 };
+
+
 
 //---------------------------------- End of Controllers ----------------------------------//
 

@@ -105,7 +105,7 @@ export const loginWithMailOtp = async  (req, res) => {
          }
 
          const token = jwt.sign(
-            {userId: user._id},
+            {email, id: user._id},
             process.env.SECRET_KEY,
             // { expiresIn: process.env.JWT_EXPIRE || "7d" }
          )
