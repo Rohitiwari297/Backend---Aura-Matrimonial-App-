@@ -1,17 +1,18 @@
 // WRITTING NOTIFICATION CONTROLLER
 
 import Notification from "../models/notificationSchema.js";
+import User from "../models/userSchema.js";
 import { sendNotification } from "../services/sendNotification.js";
 
 //SEND NOTIFICATION - (ONE-TO-ONE BY USER ID)
 export const sendNotificaion = async (req, res) => {
     // SEND NOTIFICATION TO PARTICULAR USER
     const receivedId = req.params.id;
-    const { message, title } = req.body;
+    const { message, title, target } = req.body;
 
     try {
         //VALIDATIONS OF REQUIRED FIELDS
-        if (!receivedId || !message || !title) {
+        if (!receivedId || !message || !title || !target) {
             res.status(400).json({
                 success: false,
                 message: 'All fields are mandatory'
@@ -124,4 +125,16 @@ export const deleteNotification = async (req, res) => {
     }
 }
 
-// 
+// SAVE USER ACCESS TOKEN TO DB (Incomplete)
+export const saveAccessToken = async (req, res) => {
+    const loggedInUser = req.user?._id
+    const {token} = res.body;
+
+    if (!token) 
+        res.status(400).json({
+            success: false,
+            message: 'Token missing in body'
+        });
+    
+    const savedToken = await User.findByIdAndUpdate({_id: loggedInUser}, {token: token})
+}

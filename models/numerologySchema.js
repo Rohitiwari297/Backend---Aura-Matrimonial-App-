@@ -7,6 +7,11 @@ const numerologySchema = new  mongoose.Schema({
         ref: 'users',
         required: true
     },
+    numeroListId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'NumeroList',
+        required: true
+    },
 
     fullName: {
         type: String,
@@ -19,13 +24,12 @@ const numerologySchema = new  mongoose.Schema({
     },
 
     birthDate: {
-        type: String,
+        type: Date,
         required: true
     },
 
     birthTime: {
-        type: String,
-        required: true
+        type: String
     },
     paymentOf: {
         type: Number,
@@ -37,7 +41,8 @@ const numerologySchema = new  mongoose.Schema({
     },
     pdfUrl: {
         type: String,
-    }
+    },
+
 
 }, {timestamps: true})
 

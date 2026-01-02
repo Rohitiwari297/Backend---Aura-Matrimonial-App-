@@ -52,6 +52,7 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
   },
   otp: { type: String },
+  token:{type: String},  // store token for the notification
 
   // Profile Details
   about : { type: String },
@@ -119,27 +120,6 @@ const userSchema = new mongoose.Schema({
     manglik: { type: String },
   },
 
-  // // Social / Connection System
-  // followers: {
-  //   type: [String],
-  //   default: [],
-  // },
-  // followings: {
-  //   type: [String],
-  //   default: [],
-  // },
-  // followRequests: {
-  //   type: [String],
-  //   default: [],
-  // },
-  // sentRequests: {
-  //   type: [String],
-  //   default: [],
-  // },
-  // blockedUsers: {
-  //   type: [String],
-  //   default: [],
-  // },
   is_subscribed: {
     type: Boolean,
     default: false,

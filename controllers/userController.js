@@ -1159,6 +1159,10 @@ export const profileViewHistory = async (req, res) => {
 };
 
 
+// users token for the sending the notifications
+
+
+
 
 //---------------------------------- End of Controllers ----------------------------------//
 

@@ -1,37 +1,46 @@
 import { Server } from "socket.io";
-import http  from 'http'
-import express from 'express'
+import http from "http";
+import express from "express";
 
-const app = express()
+const app = express();
+const server = http.createServer(app);
 
-const server = http.createServer(app)
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ['GET', 'POST']
-    }
-})
-io.on('connection', (socket)=>{
-    console.log('New client connected...', socket.id)
+  cors: { origin: "*" },
+});
 
-    // Listen for messages from Postman (or frontend)
-    socket.on("sendMessage", (data) => {
-    console.log(" Message received from client:", data);
+export const onlineUsers = new Map();
 
-    // Optional: send back a confirmation
-    socket.emit("messageReceived", {
-      success: true,
-      receivedData: data,
-    });
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("join", (userId) => {
+    console.log("JOIN EVENT HIT:", userId);
+    onlineUsers.set(userId.toString(), socket.id);
+    console.log("ONLINE USERS:", onlineUsers);
   });
-
-    socket.on("Disconnected", ()=>{
-        console.log('Client disconnected', socket.id)
-    })
-})
+});
 
 
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
 
+  //  userId yahin se aayega
+  const userId = socket.handshake.query.userId;
 
-export {app, io, server}
+  if (userId) {
+    onlineUsers.set(userId.toString(), socket.id);
+    console.log("USER ADDED:", userId, socket.id);
+  }
 
+  console.log("ONLINE USERS:", onlineUsers);
+
+  socket.on("disconnect", () => {
+    if (userId) {
+      onlineUsers.delete(userId.toString());
+      console.log("USER DISCONNECTED:", userId);
+    }
+  });
+});
+
+export { app, io, server };

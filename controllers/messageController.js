@@ -2,72 +2,8 @@
 import Conversation from '../models/conversationSchema.js'
 import Message from '../models/messageSchema.js';
 
-import { io } from "../socketIO/socketServer.js"; // import io instance
-
-// Controllers
-
-// send message without socket.io
-// export const sendMessage = async (req, res) => {
-//     // 
-//     try {
-//         const {message} = req.body;
-//         const receiverId = req.params.id;
-//         const loggedInuserId = req.user._id;
-
-//         //console 
-//         console.log('message :', message)
-//         console.log('receiver Id :', receiverId)
-//         console.log('loggedIn user Id :', loggedInuserId)
-
-//         // find in coversation of user Id's of both user
-//         let conversation = await Conversation.findOne({
-//             // now we have to find in which attribute = participant
-//             participents: { $all: [receiverId, loggedInuserId]},
-//             messages: []  // initialize messages array if your schema doesn’t default it
-//         })
-
-//         // if in conversation both Id's are not exists the save the Id's in conversation
-//         if ( !conversation ) {
-//             await Conversation.create({      //here we create the initiate the conversation but not save here
-//                 participents: [receiverId, loggedInuserId]
-//             })
-//         }
-
-//         //now save the message which is send the sender
-//         const newMessage = new Message({
-//             senderId: loggedInuserId,
-//             receiverId,
-//             message
-//         })
-
-//         if (newMessage){
-//             //if mssg then save the mssg
-//             //await newMessage.save()   //we have to save parallelly with await conversation.save()
-//             //after that push the mssgs in conversation's messages in conversation Schema
-//             conversation.messages.push(newMessage._id)
-//             //now here save the conversation
-//             //await conversation.save()  //we have to save parallelly with "await conversation.save()"
-            
-//             //send the success response to the user
-            
-
-//             // use promises for the saving messages and conversations parallelly
-//             await Promise.all([newMessage.save(), conversation.save()])
-//             res.status(201).json({
-//                 success: true,
-//                 message: 'message send successfully',
-//                 data: newMessage
-//             })
-
-//         }
-//     } catch (error) {
-//         res.status(500).json({
-//             success: false,
-//             message: 'Server error while sending the message',
-//             error: error.message
-//         })
-//     }
-// }
+//import { io } from "../socketIO/socketServer.js"; // import io instance
+import { io, onlineUsers } from "../socketIO/socketServer.js";
 
 
 // send message with socket.io
@@ -75,44 +11,73 @@ export const sendMessage = async (req, res) => {
   try {
     const { message } = req.body;
     const receiverId = req.params.id;
-    const loggedInuserId = req.user._id;
+    const loggedInUserId = req.user._id;
 
-    console.log('requesting messagge:', message)
+    if (!message || !receiverId) {
+      return res.status(400).json({
+        success: false,
+        message: "Message and receiverId required",
+      });
+    }
 
     let conversation = await Conversation.findOne({
-      participents: { $all: [receiverId, loggedInuserId] },
+      participents: { $all: [receiverId, loggedInUserId] },
     });
 
     if (!conversation) {
       conversation = await Conversation.create({
-        participents: [receiverId, loggedInuserId],
+        participents: [receiverId, loggedInUserId],
+        messages: [],
       });
     }
 
-    const newMessage = new Message({
-      senderId: loggedInuserId,
+    const newMessage = await Message.create({
+      senderId: loggedInUserId,
       receiverId,
       message,
+      conversationId: conversation._id,
     });
 
-    await Promise.all([newMessage.save(), conversation.save()]);
+    conversation.messages.push(newMessage._id);
+    await conversation.save();
 
-    // Emit a real-time event to the receiver
-    io.emit("newMessage", {
-      senderId: loggedInuserId,
-      receiverId,
-      message,
-    });
+    const payload = {
+      _id: newMessage._id,
+      message: newMessage.message,
+      senderId: loggedInUserId.toString(),
+      receiverId: receiverId.toString(),
+      createdAt: newMessage.createdAt,
+    };
+
+    //  SOCKET EMIT
+    const receiverSocketId = onlineUsers.get(receiverId.toString());
+    console.log('receiverSocketId', receiverSocketId)
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", payload);
+    }
+
+    if (!receiverSocketId) {
+      console.log("Receiver offline, message saved only");
+    } else {
+      io.to(receiverSocketId).emit("newMessage", payload);
+    }
+
+
+    const senderSocketId = onlineUsers.get(loggedInUserId.toString());
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("newMessage", payload);
+    }
 
     res.status(201).json({
       success: true,
       message: "Message sent successfully",
-      data: newMessage,
+      data: payload,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Server error while sending the message",
+      message: "Send message error",
       error: error.message,
     });
   }
@@ -155,3 +120,59 @@ export const getMessage = async (req, res) => {
         });
     }
 };
+
+
+// List of initiating chat user
+export const getChatHistoryUsers = async (req, res) => {
+  try {
+    const loggedInUserId = req.user?._id;
+
+    if (!loggedInUserId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
+    const conversations = await Conversation.find({
+      participents: loggedInUserId,
+    }).populate("participents", "fullName profilePhotos");
+
+    if (!conversations.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No chat history found",
+      });
+    }
+
+    const usersMap = new Map();
+
+    conversations.forEach((conv) => {
+      const otherUser = conv.participents.find(
+        (user) => user._id.toString() !== loggedInUserId.toString()
+      );
+
+      if (otherUser) {
+        usersMap.set(otherUser._id.toString(), {
+          _id: otherUser._id,
+          fullName: otherUser.fullName,
+          profilePhoto: otherUser.profilePhotos?.[0]?.url || null,
+        });
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Chat history users fetched successfully",
+      data: Array.from(usersMap.values()),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error while getting chat history",
+      error: error.message,
+    });
+  }
+};
+
+
