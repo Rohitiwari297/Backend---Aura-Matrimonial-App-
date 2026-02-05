@@ -767,8 +767,10 @@ export const createProfile = async (req, res) => {
 
     // Build URLs for all uploaded images
     const newImageUrls = req.files.map(file =>
-      `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+      // `${req.protocol}://${req.get("host")}/uploads/${file.filename}`
+      `/uploads/${file.filename}`
     );
+    
 
     // Enforce a maximum of 4 images total
     if (existingImages.length + newImageUrls.length > 4) {
@@ -960,10 +962,10 @@ export const getUserProfile = async (req, res) => {
 
 // create partner preference
 export const partnerPreferences = async (req, res) => {
-    const { age, heightRange, state, education, income, cast, language, manglik, city, occupation, religion } = req.body;
+    const { age, heightRange, state, education, income, cast, language, manglik, city, country, occupation, religion } = req.body;
 
     //validations if any fields requred
-    if(!age, !heightRange, !state, !education, !income, !cast, !language, !manglik, !city, !occupation, !religion){
+    if(!age || !heightRange|| !state|| !education|| !income|| !cast|| !language|| !manglik|| !city|| !country|| !occupation|| !religion){
         res.status(500).json({
             success: false,
             message: 'all fields are required'
@@ -1003,6 +1005,7 @@ export const partnerPreferences = async (req, res) => {
                         location: {
                             state,
                             city,
+                            country
                         },
                         education,
                         occupation,
@@ -1063,6 +1066,7 @@ export const updatePartnerPreferences = async (req, res) => {
       language,
       manglik,
       city,
+      country,
       occupation,
       religion,
     } = req.body;
@@ -1091,7 +1095,7 @@ export const updatePartnerPreferences = async (req, res) => {
             },
             religion,
             caste,
-            location: { state, city },
+            location: { state, city, country },
             education,
             occupation,
             income,

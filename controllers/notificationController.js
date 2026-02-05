@@ -8,11 +8,11 @@ import { sendNotification } from "../services/sendNotification.js";
 export const sendNotificaion = async (req, res) => {
     // SEND NOTIFICATION TO PARTICULAR USER
     const receivedId = req.params.id;
-    const { message, title, target } = req.body;
+    const { message, title } = req.body;
 
     try {
         //VALIDATIONS OF REQUIRED FIELDS
-        if (!receivedId || !message || !title || !target) {
+        if (!receivedId || !message || !title ) {
             res.status(400).json({
                 success: false,
                 message: 'All fields are mandatory'
@@ -128,13 +128,32 @@ export const deleteNotification = async (req, res) => {
 // SAVE USER ACCESS TOKEN TO DB (Incomplete)
 export const saveAccessToken = async (req, res) => {
     const loggedInUser = req.user?._id
-    const {token} = res.body;
+    const {token} = req.body;
+    console.log('token', token)
 
-    if (!token) 
+   try {
+     if (!token) 
         res.status(400).json({
             success: false,
             message: 'Token missing in body'
         });
     
-    const savedToken = await User.findByIdAndUpdate({_id: loggedInUser}, {token: token})
+    const savedToken = await User.findOneAndUpdate({_id: loggedInUser}, {token: token})
+    if (!savedToken) {
+        res.status(400).json({
+            success:  false,
+            message: 'token is missing'
+        })
+    }
+    res.status(200).json({
+        success: true,
+        message: 'token saved successfully'
+    })
+   } catch (error) {
+    res.status(500).json({
+        success: false,
+        message: 'Server error while saving the token',
+        error: error.message
+    })
+   }
 }

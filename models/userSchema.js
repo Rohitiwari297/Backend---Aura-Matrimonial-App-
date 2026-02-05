@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { genderType, profileType, roleTypes  } from "../utils/constants.js";
+import { type } from "os";
 
 const userSchema = new mongoose.Schema({
   // Basic Profile Info
@@ -111,6 +112,7 @@ const userSchema = new mongoose.Schema({
     location: {
       state: { type: String },
       city: { type: String },
+      country: { type: String }
     },
     education: { type: String },
     otherQualification: { type: String },

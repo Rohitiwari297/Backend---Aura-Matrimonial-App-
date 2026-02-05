@@ -1,6 +1,6 @@
 import NumeroList from "../models/numeroListSchema.js";
 import Numerology from "../models/numerologySchema.js";
-import User from "../models/userSchema.js";
+
 
 // create numerology details
 export const numerologyDetails = async (req, res) => {
@@ -97,7 +97,9 @@ export const createNumeroList = async (req, res) => {
     
   try {
     const userId = req.user?._id;
-    const { title, price } = req.body;
+    const { title } = req.body;
+    const price = Number(req.body.price);
+
 
     if (!userId) {
       return res.status(401).json({
@@ -152,7 +154,7 @@ export const createNumeroList = async (req, res) => {
 export const getNumeroList = async (req, res) => {
     const user = req.user?._id
     try {
-        const data = await Numerology.find()
+        const data = await NumeroList.find()
 
         if(!data || data.length <= 0){
             res.status(400).json({

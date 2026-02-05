@@ -57,7 +57,7 @@ app.use('/api/admin',admin )
 app.use('/api/social', socialMedia)
 app.use('/subscriptionPlans', subscriptionPlanRoutes )
 app.use('/api/subscription', purchasePlanRoute)
-app.use('/message', messageRoute)
+app.use('/message', messageRoute)//
 app.use('/api/dashboard', dashboard)
 app.use('/api/numerology', numerology)
 app.use('/api/mail', mail)
