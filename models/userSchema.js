@@ -66,6 +66,7 @@ const userSchema = new mongoose.Schema({
   religion: { type: String },
   caste: { type: String },
   subcaste: { type: String },
+  allowOtherCaste: {type: Boolean},
   manglik: { type: String },
   education: { type: String },
   otherQualification: { type: String },

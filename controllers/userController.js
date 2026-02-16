@@ -301,6 +301,7 @@ export const logoutUser = async (req, res) => {
 
 // update user details 
 export const updateUser = async (req, res) => {
+  console.log("req.body:", req.body);
   try {
     // Get user ID from auth middleware
     const userId = req.user?._id;
@@ -321,6 +322,7 @@ export const updateUser = async (req, res) => {
       religion,
       caste,
       subcaste,
+      allowOtherCaste,
       manglik,
       education,
       otherQualification,
@@ -350,6 +352,7 @@ export const updateUser = async (req, res) => {
         religion,
         caste,
         subcaste,
+        allowOtherCaste,
         manglik,
         education,
         otherQualification,
@@ -386,6 +389,7 @@ export const updateUser = async (req, res) => {
         religion,
         caste,
         subcaste,
+        allowOtherCaste,
         manglik,
         education,
         otherQualification,

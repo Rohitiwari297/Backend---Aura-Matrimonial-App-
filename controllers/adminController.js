@@ -7,17 +7,17 @@ import jwt from 'jsonwebtoken'
  */
 
 export const logInAdmin = async (req, res) => {
-    const {email, password, roleType} = req.body;
+    const { email, password, roleType } = req.body;
 
     try {
-        if (!email || !password || !roleType){
+        if (!email || !password || !roleType) {
             res.status(404).json({
                 success: false,
                 message: 'All fields are required'
             })
         }
 
-        const user = await User.findOne({email})
+        const user = await User.findOne({ email })
         if (!user) {
             res.status(401).json({
                 success: false,
@@ -27,7 +27,7 @@ export const logInAdmin = async (req, res) => {
         }
 
         const comparePass = await bcrypt.compare(password.toString(), user.password.toString())
-        if (! comparePass) {
+        if (!comparePass) {
             res.status(401).json({
                 success: false,
                 message: 'Unauthorized ! invalide password '
@@ -35,9 +35,9 @@ export const logInAdmin = async (req, res) => {
         }
 
         const accessToken = jwt.sign(
-            {email, id: user._id},
+            { email, id: user._id },
             process.env.SECRET_KEY,
-            {expiresIn: process.env.EXPIRED_ID}
+            { expiresIn: process.env.EXPIRED_ID }
         )
 
         res.status(200).json({
